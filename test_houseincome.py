@@ -7,7 +7,7 @@ from house import House
 
 def test_income_from_houses():
     width, height = 5, 5
-    num_agents = 1
+    num_agents = 2
     n_timesteps = 20  # Increased timesteps for better visualization
     num_resources = 20
     house_cost = (2, 2)
