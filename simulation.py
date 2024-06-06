@@ -1,6 +1,7 @@
 import numpy as np
 from agent import Agent
 from grid import Grid
+import matplotlib.pyplot as plt
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1):
@@ -9,6 +10,10 @@ class Simulation:
         self.num_agents = num_agents
         self.n_timesteps = n_timesteps
         self.num_resources = num_resources
+        self.wealth_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
+        self.houses_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
+
+        
 
         assert num_agents <= self.grid.width * self.grid.height, "Number of agents cannot be larger than gridpoints"
 
@@ -45,10 +50,10 @@ class Simulation:
         return (x, y)
 
     def timestep(self):
-        # Iterate over all agents
         for agent in self.grid.agents.values():
-            # Move agent, collect resources, and build house
             agent.step()
+            self.wealth_over_time[agent.agent_id].append(agent.wealth)
+            self.houses_over_time[agent.agent_id].append(len(agent.houses))
         
         # Prints state of system after timestep for debugging purposes
         # print(self.grid.agent_matrix)
@@ -79,3 +84,24 @@ class Simulation:
         while not self.grid.if_empty(position):
             position = self.get_random_position()
         return position
+    
+    def plot_wealth_over_time(self):
+        for agent_id, wealth_history in self.wealth_over_time.items():
+            plt.plot(range(len(wealth_history)), wealth_history, marker='o', label=f'Agent {agent_id}')
+        plt.xlabel('Timesteps')
+        plt.ylabel('Wealth')
+        plt.title('Wealth Over Time')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    def plot_houses_over_time(self):
+        for agent_id, houses_history in self.houses_over_time.items():
+            plt.plot(range(len(houses_history)), houses_history, marker='o', label=f'Agent {agent_id}')
+        plt.xlabel('Timesteps')
+        plt.ylabel('Number of Houses')
+        plt.title('Number of Houses Over Time')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+

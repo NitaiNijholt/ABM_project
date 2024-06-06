@@ -1,5 +1,6 @@
 import numpy as np
 from grid import Grid
+from house import House
 
 class Agent:
     def __init__(self, agent_id, position, grid, wealth=0, wood=0, stone=0):
@@ -9,6 +10,7 @@ class Agent:
         self.wood = wood
         self.stone = stone
         self.grid = grid
+        self.houses = []
 
     def random_move(self):
         """
@@ -55,16 +57,21 @@ class Agent:
 
 
 
-    def build_house(self):
+    def build_house(self, income_per_timestep=1):
         wood_cost, stone_cost = self.grid.house_cost
-        # Allow building a house if the position is occupied by the agent but no other house is there
         if self.wood >= wood_cost and self.stone >= stone_cost and self.grid.house_matrix[self.position] == 0:
             self.wood -= wood_cost
             self.stone -= stone_cost
             self.grid.house_matrix[self.position] = 1
+            house = House(self.agent_id, self.position, income_per_timestep=income_per_timestep)
+            self.houses.append(house)
+            self.grid.houses[self.position] = house
             print(f"Agent {self.agent_id} built a house at {self.position}")
-        else:
-            print(f"Agent {self.agent_id} cannot build a house. Wood: {self.wood}, Stone: {self.stone}, Position has house: {self.grid.house_matrix[self.position] == 1}")
+
+    def collect_income(self):
+        income_collected = sum(house.income_per_timestep for house in self.houses)
+        self.wealth += income_collected
+        print(f"Agent {self.agent_id} collected {income_collected} income from {len(self.houses)} houses. Total wealth: {self.wealth}")
 
     def step(self):
         """
@@ -73,3 +80,4 @@ class Agent:
         self.random_move()
         self.collect_resources()
         self.build_house()
+        self.collect_income()

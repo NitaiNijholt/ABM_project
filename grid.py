@@ -2,14 +2,15 @@ import numpy as np
 
 class Grid:
     def __init__(self, width, height, house_cost=(2, 2)):
-            self.width = width
-            self.height = height
-            self.house_cost = house_cost  # house_cost attribute, where first item is wood cost and second is stone cost
-            self.agents = {}
-            self.agent_matrix = np.zeros([self.width, self.height])
-            self.resource_matrix_wood = np.zeros([self.width, self.height])
-            self.resource_matrix_stone = np.zeros([self.width, self.height])
-            self.house_matrix = np.zeros([self.width, self.height])
+        self.width = width
+        self.height = height
+        self.house_cost = house_cost
+        self.agents = {}
+        self.agent_matrix = np.zeros((self.width, self.height), dtype=int)
+        self.resource_matrix_wood = np.zeros((self.width, self.height), dtype=int)
+        self.resource_matrix_stone = np.zeros((self.width, self.height), dtype=int)
+        self.house_matrix = np.zeros((self.width, self.height), dtype=int)
+        self.houses = {}
 
 
     def get_neighbors(self, position):
