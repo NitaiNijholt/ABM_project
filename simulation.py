@@ -86,6 +86,9 @@ class Simulation:
         return position
     
     def plot_wealth_over_time(self):
+        """
+        Plot wealth of agents over time.
+        """
         for agent_id, wealth_history in self.wealth_over_time.items():
             plt.plot(range(len(wealth_history)), wealth_history, marker='o', label=f'Agent {agent_id}')
         plt.xlabel('Timesteps')
@@ -96,6 +99,10 @@ class Simulation:
         plt.show()
 
     def plot_houses_over_time(self):
+        """
+        Plot number of houses of agents over time.
+        """
+
         for agent_id, houses_history in self.houses_over_time.items():
             plt.plot(range(len(houses_history)), houses_history, marker='o', label=f'Agent {agent_id}')
         plt.xlabel('Timesteps')

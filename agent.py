@@ -58,6 +58,9 @@ class Agent:
 
 
     def build_house(self, income_per_timestep=1):
+        """
+        Agent builds a house at the current position if the agent has enough resources and the cell is empty.
+        """
         wood_cost, stone_cost = self.grid.house_cost
         if self.wood >= wood_cost and self.stone >= stone_cost and self.grid.house_matrix[self.position] == 0:
             self.wood -= wood_cost
@@ -69,6 +72,9 @@ class Agent:
             print(f"Agent {self.agent_id} built a house at {self.position}")
 
     def collect_income(self):
+        """
+        Agent collects income from all houses.
+        """
         income_collected = sum(house.income_per_timestep for house in self.houses)
         self.wealth += income_collected
         print(f"Agent {self.agent_id} collected {income_collected} income from {len(self.houses)} houses. Total wealth: {self.wealth}")
