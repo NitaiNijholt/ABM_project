@@ -6,6 +6,10 @@ class Grid:
         self.height = height
         self.agents = {}
         self.agent_matrix = np.zeros([self.width, self.height])
+          # Adding resource matrices for wood and stone
+        self.resource_matrix_wood = np.zeros([self.width, self.height])
+        self.resource_matrix_stone = np.zeros([self.width, self.height])
+
 
     def get_neighbors(self, position):
         """
@@ -21,4 +25,12 @@ class Grid:
         return top, bottom, left, right
     
     def if_empty(self, position):
-        return self.agent_matrix[position] == 0
+        """
+        Check if a position is empty for both agents and resources.
+        """
+        return (self.agent_matrix[position] == 0 and
+                self.resource_matrix_wood[position] == 0 and
+                self.resource_matrix_stone[position] == 0)
+            
+
+    
