@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 # %%
-
-# %%
-
-
 class Market:
     def __init__(self, wood_rate, stone_rate):
         self.wood_rate = wood_rate
