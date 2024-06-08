@@ -1,10 +1,11 @@
 import numpy as np
 from agent import Agent
 from grid import Grid
+from market import Market
 import matplotlib.pyplot as plt
 
 class Simulation:
-    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1):
+    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1, wood_rate=1, stone_rate=1):
         self.t = 0
         self.grid = grid
         self.num_agents = num_agents
@@ -13,7 +14,8 @@ class Simulation:
         self.wealth_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
         self.houses_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
 
-        
+        # Initialize market
+        self.market = Market(wood_rate, stone_rate)
 
         assert num_agents <= self.grid.width * self.grid.height, "Number of agents cannot be larger than gridpoints"
 
@@ -23,9 +25,6 @@ class Simulation:
         
         # Initialize resources
         self.initialize_resources()
-
-        # Prints initial state of system for debugging purposes
-        # print(self.grid.agent_matrix)
 
     def make_agent(self, agent_id):
         """
@@ -37,7 +36,7 @@ class Simulation:
         while not self.grid.if_no_agent(position):
             position = self.get_random_position()
 
-        agent = Agent(agent_id, position, self.grid)
+        agent = Agent(agent_id, position, self.grid, self.market)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
 
@@ -55,9 +54,6 @@ class Simulation:
             self.wealth_over_time[agent.agent_id].append(agent.wealth)
             self.houses_over_time[agent.agent_id].append(len(agent.houses))
         
-        # Prints state of system after timestep for debugging purposes
-        # print(self.grid.agent_matrix)
-    
     def run(self):
         for t in range(self.n_timesteps):
             print(f"Timestep {t+1}:")
@@ -84,7 +80,7 @@ class Simulation:
         while not self.grid.if_empty(position):
             position = self.get_random_position()
         return position
-    
+
     def plot_wealth_over_time(self):
         """
         Plot wealth of agents over time.
@@ -102,7 +98,6 @@ class Simulation:
         """
         Plot number of houses of agents over time.
         """
-
         for agent_id, houses_history in self.houses_over_time.items():
             plt.plot(range(len(houses_history)), houses_history, marker='o', label=f'Agent {agent_id}')
         plt.xlabel('Timesteps')
@@ -111,4 +106,7 @@ class Simulation:
         plt.legend()
         plt.grid(True)
         plt.show()
+
+
+
 
