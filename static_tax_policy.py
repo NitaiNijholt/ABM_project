@@ -12,7 +12,7 @@ class StaticTaxPolicy:
 
         # Determine wealth brackets based on quantiles
         quartiles = np.percentile(wealth_values, [25, 50, 75, 100])
-        tax_rates = [0.1, 0.2, 0.35, 0.5]
+        tax_rates = [0.1, 0.2, 0.3, 0.4]
 
         # Create a list of (upper_bound, tax_rate) tuples
         tax_brackets = [(quartiles[i], tax_rates[i]) for i in range(len(quartiles))]
@@ -33,7 +33,7 @@ class StaticTaxPolicy:
             print(f"Agent {agent.agent_id} with wealth {agent.wealth + tax} pays tax {tax}. Remaining wealth: {agent.wealth}")
 
 
-agents = [Agent(agent_id=i, position=(i, i), grid=None, wealth=i*1000) for i in range(1, 5)]
+agents = [Agent(agent_id=i, position=(i, i), grid=None, wealth=i*1000) for i in range(1, 9)]
 tax_policy = StaticTaxPolicy(agents)
 tax_policy.apply_taxes()                   
 
