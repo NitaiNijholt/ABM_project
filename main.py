@@ -24,3 +24,6 @@ sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, num_resources=num_re
 # Run simulation
 sim.run()
 
+# Check the expected income increase by building a house for each agent
+for id, agent in sim.grid.agents.items():
+    print(f"\nAgent {id} can increase {agent.expected_income_building()} income each time step by building a house")
