@@ -9,7 +9,7 @@ from agent import Agent
 height = 5
 width = 5
 num_agents = 1
-n_timesteps = 50
+n_timesteps = 25
 num_resources = 8
 house_cost = (2, 2)  # Define the cost of building a house
 wood_rate = 2  # Define the exchange rate for wood to wealth

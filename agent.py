@@ -20,26 +20,65 @@ class Agent:
         self.currently_building_timesteps = 0
         self.required_building_time = 5
 
+        # Current objective of the agent. Now, 'Trade' is the only thing that does something
+        self.objective = 'Trade'
+
+        # Exponential factor indicating how determined the agent is in his objective. 0 is equivalent to no objective, and higher values lead to smaller and smaller probabilities that the agent does something which delays achieving the objective
+        self.objective_alpha = 1
+
         
-    def find_random_move(self):
+    def find_moves(self):
         """
-        Finds a random move and returns the position
+        Finds all possible moves and returns them
         """
         neighbors = self.grid.get_neighbors(self.position)
-        possible_moves = [neighbor for neighbor in neighbors if (self.grid.if_no_agent(neighbor) and self.grid.house_matrix[neighbor] == 0)]
-        return possible_moves[np.random.randint(len(possible_moves))]
+        return [neighbor for neighbor in neighbors if (self.grid.if_no_agent(neighbor) and self.grid.house_matrix[neighbor] == 0)]
+
+    def get_direction_to_position(self, position, normalized=True):
+        """
+        Returns (normalized) direction from current position to another position on the grid
+        """
+
+        direction = [position[0] - self.position[0], position[1] - self.position[1]]
+        if normalized:
+            magnitude = np.sqrt(direction[0]**2 + direction[1]**2)
+            return [direction[0] / magnitude, direction[1] / magnitude]
+        return direction
+    
+    def get_random_move_in_direction(self, direction, possible_moves):
+        """
+        Calculated scores of a move based on the desired direction, and uses those scores as weights in a weighted random choice to find a move
+        """
+        
+        move_scores = []
+        for move in possible_moves:
+            move_direction = [move[0] - self.position[0], move[1] - self.position[1]]
+            score = np.dot(direction, move_direction)
+            move_scores.append(score)
+        
+        # Adjust scores to be non-negative by adding the absolute value of the smallest score
+        min_score = min(move_scores)
+        move_scores = [(score - min_score) ** self.objective_alpha for score in move_scores]
+        
+        # Use random.choices to select a move based on the scores as weights
+        return possible_moves[np.random.choice(len(possible_moves), p=np.array(move_scores)/sum(move_scores))]
 
     def move(self):
         """
         Agent moves to an empty neighboring cell. If all neighboring cells are occupied, the agent does not move.
         """
 
-        try:
-            # Change position of agent if there is an empty neighboring cell
-            new_position = self.find_random_move()
-        except ValueError:  # Catch the case where possible_moves is empty
+        possible_moves = self.find_moves()
+        if len(possible_moves) == 0:
             print(f"Agent {self.agent_id} has no possible moves")
             return
+        
+        if self.objective == 'Trade':
+            direction_to_market = self.get_direction_to_position(self.market_position)
+            new_position = self.get_random_move_in_direction(direction_to_market, possible_moves)
+            
+        else:
+            new_position = possible_moves[np.random.randint(len(possible_moves))]
 
         # Move agent on the grid
         self.grid.agent_matrix[self.position] = 0
@@ -124,9 +163,11 @@ class Agent:
 
             # Agent tries to collect resource, and nothing else if he succeeds
             if not self.collect_resources():
-                self.move()
+
+                if self.position == self.market_position:
+                    self.trade(wood_to_trade=1, stone_to_trade=1)
                 self.start_building_house()
-                # self.trade(wood_to_trade=1, stone_to_trade=1)
+                self.move()
     
         # Agent can always collect
         self.collect_income()
@@ -139,14 +180,7 @@ class Agent:
         del self.grid.agents[self.agent_id]
         self.grid.agent_matrix[self.position] = 0
         print(f"Agent {self.agent_id} died at the age of {self.life_expectancy}")
-        
-    def move_to_market(self):
-        """
-        Agent moves to the market position.
-        """
-        self.grid.agent_matrix[self.position] = 0
-        self.position = self.market_position
-        self.grid.agent_matrix[self.position] = self.agent_id
+
         
     def trade(self, wood_to_trade=0, stone_to_trade=0):
         """
@@ -156,7 +190,6 @@ class Agent:
         TODO: Walking to the market takes multiple timesteps if far away. Now agents teleport
         TODO: Add utility function such that it determines how and when agent will trade
         """
-        self.move_to_market()
 
         if wood_to_trade > 0:
             if wood_to_trade <= self.wood:
@@ -175,3 +208,5 @@ class Agent:
                 print(f"Agent {self.agent_id} traded {stone_to_trade} stone for {wealth_received} wealth")
             else:
                 print(f"Agent {self.agent_id} does not have enough stone to trade")
+        
+        self.objective = 'Nothing'
