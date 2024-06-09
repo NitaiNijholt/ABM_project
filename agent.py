@@ -3,7 +3,7 @@ from grid import Grid
 from house import House
 
 class Agent:
-    def __init__(self, agent_id, position, grid, market, wealth=0, wood=0, stone=0):
+    def __init__(self, sim, agent_id, position, grid, market, life_expectancy, creation_time, wealth=0, wood=0, stone=0):
         self.agent_id = agent_id
         self.position = position
         self.wealth = wealth
@@ -13,18 +13,30 @@ class Agent:
         self.market = market
         self.houses = []
         self.market_position = (0, 0)  # Define the market position
+        self.life_expectancy = life_expectancy
+        self.creation_time = creation_time
+        self.sim = sim
+
+        self.currently_building_timesteps = 0
+        self.required_building_time = 5
 
         
-    def random_move(self):
+    def find_random_move(self):
         """
-        Agent moves to an empty neighboring cell. If all neighboring cells are occupied, the agent does not move.
+        Finds a random move and returns the position
         """
         neighbors = self.grid.get_neighbors(self.position)
         possible_moves = [neighbor for neighbor in neighbors if (self.grid.if_no_agent(neighbor) and self.grid.house_matrix[neighbor] == 0)]
+        return possible_moves[np.random.randint(len(possible_moves))]
+
+    def move(self):
+        """
+        Agent moves to an empty neighboring cell. If all neighboring cells are occupied, the agent does not move.
+        """
 
         try:
             # Change position of agent if there is an empty neighboring cell
-            new_position = possible_moves[np.random.randint(len(possible_moves))]
+            new_position = self.find_random_move()
         except ValueError:  # Catch the case where possible_moves is empty
             print(f"Agent {self.agent_id} has no possible moves")
             return
@@ -55,25 +67,34 @@ class Agent:
 
         if resources_collected:
             print(f"Collected resources succesfully! New inventory - Wood: {self.wood}, Stone: {self.stone}")
-        else:
-            print(f"No resources collected at position {self.position}")
-
-
+            return True
+        print(f"No resources collected at position {self.position}")
+        return False
 
     def build_house(self, income_per_timestep=1):
         """
+        Agent completes the construction of a house
+        """ 
+
+        self.grid.house_matrix[self.position] = 1
+        house = House(self.agent_id, self.position, income_per_timestep=income_per_timestep)
+        self.houses.append(house)
+        self.grid.houses[self.position] = house
+        print(f"Agent {self.agent_id} completed building a house at {self.position}")
+
+
+    def start_building_house(self):
+        """
         Agent builds a house at the current position if the agent has enough resources and the cell is empty.
         """
+
         wood_cost, stone_cost = self.grid.house_cost
         if self.wood >= wood_cost and self.stone >= stone_cost and self.grid.house_matrix[self.position] == 0:
             self.wood -= wood_cost
             self.stone -= stone_cost
-            self.grid.house_matrix[self.position] = 1
-            house = House(self.agent_id, self.position, income_per_timestep=income_per_timestep)
-            self.houses.append(house)
-            self.grid.houses[self.position] = house
-            print(f"Agent {self.agent_id} built a house at {self.position}")
-
+            print(f"Agent {self.agent_id} starts building a house at {self.position}")
+            self.currently_building_timesteps = 1
+        
     def collect_income(self):
         """
         Agent collects income from all houses.
@@ -86,11 +107,38 @@ class Agent:
         """
         Agent performs a step: move, collect resources, possibly build a house, and trade.
         """
-        self.random_move()
-        self.collect_resources()
-        self.build_house()
-        self.trade(wood_to_trade=1, stone_to_trade=1)
+
+        # If the agent is currently building
+        if self.currently_building_timesteps > 0:
+            print(f"Agent is currently building a house and cannot do other things. Currently building {self.currently_building_timesteps}/{self.required_building_time}")
+
+            self.currently_building_timesteps += 1
+
+            # If the agent just now completed building:
+            if self.currently_building_timesteps == self.required_building_time:
+                self.currently_building_timesteps = 0
+                self.build_house()
+
+        # Agent can do other things if he is not building
+        else:
+
+            # Agent tries to collect resource, and nothing else if he succeeds
+            if not self.collect_resources():
+                self.move()
+                self.start_building_house()
+                # self.trade(wood_to_trade=1, stone_to_trade=1)
+    
+        # Agent can always collect
         self.collect_income()
+
+        # Agent dies when he reaches his life expectancy
+        if self.sim.t >= self.creation_time + self.life_expectancy:
+            self.die()
+    
+    def die(self):
+        del self.grid.agents[self.agent_id]
+        self.grid.agent_matrix[self.position] = 0
+        print(f"Agent {self.agent_id} died at the age of {self.life_expectancy}")
         
     def move_to_market(self):
         """

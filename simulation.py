@@ -5,7 +5,7 @@ from market import Market
 import matplotlib.pyplot as plt
 
 class Simulation:
-    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1, wood_rate=1, stone_rate=1):
+    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1, wood_rate=1, stone_rate=1, life_expectancy=80):
         self.t = 0
         self.grid = grid
         self.num_agents = num_agents
@@ -13,6 +13,7 @@ class Simulation:
         self.num_resources = num_resources
         self.wealth_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
         self.houses_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
+        self.life_expectancy = life_expectancy
 
         # Initialize market
         self.market = Market(wood_rate, stone_rate)
@@ -36,7 +37,7 @@ class Simulation:
         while not self.grid.if_no_agent(position):
             position = self.get_random_position()
 
-        agent = Agent(agent_id, position, self.grid, self.market)
+        agent = Agent(self, agent_id, position, self.grid, self.market, life_expectancy=self.life_expectancy, creation_time=self.t)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
 
@@ -49,14 +50,16 @@ class Simulation:
         return (x, y)
 
     def timestep(self):
-        for agent in self.grid.agents.values():
+        self.t += 1
+        agents = list(self.grid.agents.values())
+        for agent in agents:
             agent.step()
             self.wealth_over_time[agent.agent_id].append(agent.wealth)
             self.houses_over_time[agent.agent_id].append(len(agent.houses))
         
     def run(self):
         for t in range(self.n_timesteps):
-            print(f"Timestep {t+1}:")
+            print(f"\nTimestep {t+1}:")
             self.timestep()
 
     def initialize_resources(self):
