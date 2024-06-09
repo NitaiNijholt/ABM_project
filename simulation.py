@@ -5,7 +5,7 @@ from market import Market
 import matplotlib.pyplot as plt
 
 class Simulation:
-    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1, wood_rate=1, stone_rate=1, life_expectancy=80, resource_spawn_period=1):
+    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1, wood_rate=1, stone_rate=1, life_expectancy=80, resource_spawn_period=1, agent_spawn_period=1):
         self.t = 0
         self.grid = grid
         self.num_agents = num_agents
@@ -15,6 +15,7 @@ class Simulation:
         self.houses_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
         self.life_expectancy = life_expectancy
         self.resource_spawn_period = resource_spawn_period
+        self.agent_spawn_period = agent_spawn_period
 
         # Initialize market
         self.market = Market(wood_rate, stone_rate)
@@ -59,6 +60,8 @@ class Simulation:
             self.houses_over_time[agent.agent_id].append(len(agent.houses))
         if self.t % self.resource_spawn_period == 0:
             self.spawn_resources()
+        if self.t % self.agent_spawn_period == 0:
+            self.spawn_agents()
         
     def run(self):
         for t in range(self.n_timesteps):
@@ -106,6 +109,16 @@ class Simulation:
             stone_position = self.get_random_position()
             if self.grid.if_empty(stone_position):
                 self.grid.resource_matrix_stone[stone_position] = 1
+
+    def spawn_agents(self):
+        """
+        Spawn agents on the grid randomly.
+        """
+        current_num_agents = len(self.grid.agents)
+        last_agent_id = max(self.grid.agents.keys())
+        for _ in range(self.num_agents - current_num_agents):
+            last_agent_id += 1
+            self.make_agent(last_agent_id)
 
     def plot_wealth_over_time(self):
         """
