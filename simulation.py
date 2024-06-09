@@ -5,7 +5,7 @@ from market import Market
 import matplotlib.pyplot as plt
 
 class Simulation:
-    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1, wood_rate=1, stone_rate=1, life_expectancy=80):
+    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1, wood_rate=1, stone_rate=1, life_expectancy=80, resource_spawn_period=1):
         self.t = 0
         self.grid = grid
         self.num_agents = num_agents
@@ -14,6 +14,7 @@ class Simulation:
         self.wealth_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
         self.houses_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
         self.life_expectancy = life_expectancy
+        self.resource_spawn_period = resource_spawn_period
 
         # Initialize market
         self.market = Market(wood_rate, stone_rate)
@@ -56,6 +57,8 @@ class Simulation:
             agent.step()
             self.wealth_over_time[agent.agent_id].append(agent.wealth)
             self.houses_over_time[agent.agent_id].append(len(agent.houses))
+        if self.t % self.resource_spawn_period == 0:
+            self.spawn_resources()
         
     def run(self):
         for t in range(self.n_timesteps):
@@ -77,12 +80,32 @@ class Simulation:
 
     def get_random_empty_position(self):
         """
-        Get a random empty position on the grid that is not occupied by an agent or a resource.
+        Get a random empty position on the grid that is not occupied by anything.
         """
         position = self.get_random_position()
         while not self.grid.if_empty(position):
             position = self.get_random_position()
         return position
+
+    def spawn_resources(self):
+        """
+        Spawn resources on the grid randomly. If the new resource position is already
+        occupied, the resource will not be placed to keep resources density constant.
+        """
+        num_wood = np.sum(self.grid.resource_matrix_wood)
+        num_stone = np.sum(self.grid.resource_matrix_stone)
+        print(f"Number of wood resources: {num_wood}")
+        print(f"Number of stone resources: {num_stone}")
+
+        for _ in range(self.num_resources - num_wood):
+            wood_position = self.get_random_position()
+            if self.grid.if_empty(wood_position):
+                self.grid.resource_matrix_wood[wood_position] = 1
+
+        for _ in range(self.num_resources - num_stone):
+            stone_position = self.get_random_position()
+            if self.grid.if_empty(stone_position):
+                self.grid.resource_matrix_stone[stone_position] = 1
 
     def plot_wealth_over_time(self):
         """
