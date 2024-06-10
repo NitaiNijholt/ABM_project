@@ -32,7 +32,7 @@ class Agent:
         Finds all possible moves and returns them
         """
         neighbors = self.grid.get_neighbors(self.position)
-        return [neighbor for neighbor in neighbors if (self.grid.if_no_agent(neighbor) and self.grid.house_matrix[neighbor] == 0)]
+        return [neighbor for neighbor in neighbors if self.grid.if_no_agents_houses(neighbor)]
 
     def get_direction_to_position(self, position, normalized=True):
         """
