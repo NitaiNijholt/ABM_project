@@ -30,18 +30,3 @@ class Grid:
         Check if a position is empty for agents and houses.
         """
         return self.agent_matrix[position] + self.house_matrix[position] == 0
-
-    def if_empty(self, position):
-        """
-        Check if a position is empty for agents, houses and resources.
-        """
-        return self.agent_matrix[position] + self.house_matrix[position] + self.resource_matrix_stone[position] + self.resource_matrix_wood[position] == 0
-    
-    def if_no_agent(self, position):
-        """
-        Check if a position is empty for agents.
-        """
-        return self.agent_matrix[position] == 0
-            
-
-

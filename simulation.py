@@ -102,11 +102,13 @@ class Simulation:
 
         for _ in range(self.num_resources - num_wood):
             wood_position = self.get_random_position()
-            self.grid.resource_matrix_wood[wood_position] += 1
+            if self.grid.if_no_agents_houses(wood_position):
+                self.grid.resource_matrix_wood[wood_position] += 1
 
         for _ in range(self.num_resources - num_stone):
             stone_position = self.get_random_position()
-            self.grid.resource_matrix_stone[stone_position] += 1
+            if self.grid.if_no_agents_houses(stone_position):
+                self.grid.resource_matrix_stone[stone_position] += 1
 
     def spawn_agents(self):
         """
