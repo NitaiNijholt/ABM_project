@@ -93,8 +93,7 @@ class Simulation:
 
     def spawn_resources(self):
         """
-        Spawn resources on the grid randomly. If the new resource position is already
-        occupied, the resource will not be placed to keep resources density constant.
+        Spawn resources on the grid randomly.
         """
         num_wood = np.sum(self.grid.resource_matrix_wood)
         num_stone = np.sum(self.grid.resource_matrix_stone)
@@ -103,13 +102,11 @@ class Simulation:
 
         for _ in range(self.num_resources - num_wood):
             wood_position = self.get_random_position()
-            if self.grid.if_empty(wood_position):
-                self.grid.resource_matrix_wood[wood_position] = 1
+            self.grid.resource_matrix_wood[wood_position] += 1
 
         for _ in range(self.num_resources - num_stone):
             stone_position = self.get_random_position()
-            if self.grid.if_empty(stone_position):
-                self.grid.resource_matrix_stone[stone_position] = 1
+            self.grid.resource_matrix_stone[stone_position] += 1
 
     def spawn_agents(self):
         """
