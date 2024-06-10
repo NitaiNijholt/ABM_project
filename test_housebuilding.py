@@ -12,7 +12,9 @@ def test_house_building():
     house_cost = (2, 2)
 
     grid = Grid(width, height, house_cost)
+    print('grid created')
     sim = Simulation(num_agents, grid, n_timesteps, num_resources)
+    print('sim created')
 
     grid.resource_matrix_wood[1, 1] = 2
     grid.resource_matrix_stone[2, 2] = 2

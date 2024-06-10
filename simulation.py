@@ -28,6 +28,7 @@ class Simulation:
         
         # Initialize resources
         self.initialize_resources()
+        print('resources initialized')
 
     def make_agent(self, agent_id):
         """
@@ -74,19 +75,19 @@ class Simulation:
         """
         for _ in range(self.num_resources):
             wood_position = self.get_random_empty_position()
-            self.grid.resource_matrix_wood[wood_position] = 1
+            self.grid.resource_matrix_wood[wood_position] += 1
             print(f"Placed wood at {wood_position}")
 
             stone_position = self.get_random_empty_position()
-            self.grid.resource_matrix_stone[stone_position] = 1
+            self.grid.resource_matrix_stone[stone_position] += 1
             print(f"Placed stone at {stone_position}")
 
     def get_random_empty_position(self):
         """
-        Get a random empty position on the grid that is not occupied by anything.
+        Get a random position on the grid that is not occupied by an agent or a house.
         """
         position = self.get_random_position()
-        while not self.grid.if_empty(position):
+        while not self.grid.if_no_agents_houses(position):
             position = self.get_random_position()
         return position
 

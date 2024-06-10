@@ -25,6 +25,12 @@ class Grid:
         right = (position[0], (position[1] + 1) % self.width)
         return [top, bottom, left, right]
 
+    def if_no_agents_houses(self, position):
+        """
+        Check if a position is empty for agents and houses.
+        """
+        return self.agent_matrix[position] + self.house_matrix[position] == 0
+
     def if_empty(self, position):
         """
         Check if a position is empty for agents, houses and resources.
