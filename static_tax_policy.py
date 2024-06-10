@@ -1,9 +1,13 @@
-from agent import Agent
+from grid import Grid
+from simulation import Simulation
 import numpy as np
 
 class StaticTaxPolicy:
-    def __init__(self, agents):
-        self.agents = agents
+    def __init__(self, grid):
+        self.agents = list(grid.agents.values())
+        # self.agents = []
+        # for agent in grid.agents.values():
+        #     self.agents.append(agent)
         self.tax_brackets = self.calculate_tax_brackets()
 
     def calculate_tax_brackets(self):
@@ -23,7 +27,6 @@ class StaticTaxPolicy:
         for i, (upper_bound, tax_rate) in enumerate(self.tax_brackets):
             if agent.wealth <= upper_bound:
                 return agent.wealth * tax_rate
-        return 0
 
     def apply_taxes(self):
         # Apply tax to each agent and adjust their wealth
@@ -33,9 +36,15 @@ class StaticTaxPolicy:
             print(f"Agent {agent.agent_id} with wealth {agent.wealth + tax} pays tax {tax}. Remaining wealth: {agent.wealth}")
 
 
-agents = [Agent(agent_id=i, position=(i, i), grid=None, wealth=i*1000) for i in range(1, 9)]
-tax_policy = StaticTaxPolicy(agents)
-tax_policy.apply_taxes()                   
+grid = Grid(4, 4, (2, 2))
+sim = Simulation(0, grid)
+# agents = [Agent(agent_id=i, position=(i, i), grid=None, wealth=i*1000) for i in range(1, 9)]
+for i in range(1, 9):
+    sim.make_agent(i)
+    grid.agents[i].wealth = i * 1000
+    grid.agents[i].position = (i, i)
+static_tax_policy = StaticTaxPolicy(grid)
+static_tax_policy.apply_taxes()
 
 
 
