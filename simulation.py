@@ -37,7 +37,7 @@ class Simulation:
         position = self.get_random_position()
 
         # Safe, because of assert statement above
-        while not self.grid.if_no_agent(position):
+        while not self.grid.if_no_agents_houses(position):
             position = self.get_random_position()
 
         agent = Agent(self, agent_id, position, self.grid, self.market, life_expectancy=self.life_expectancy, creation_time=self.t)
