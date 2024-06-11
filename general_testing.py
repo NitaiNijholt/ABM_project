@@ -13,9 +13,9 @@ def test_agent_placement_1():
     grid = Grid(width, height)
     Simulation(num_agents, grid)
 
-    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "Not all elements in agent_matrix are of type int"
-    assert np.all(grid.agent_matrix != 0), f"Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
-    assert np.array_equal(np.sort(grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"There appears to be something wrong with the IDs of the places agents"
+    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
+    assert np.all(grid.agent_matrix != 0), f"!!!!!!!!!! Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
+    assert np.array_equal(np.sort(grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"!!!!!!!!!! There appears to be something wrong with the IDs of the places agents"
     print("4 agents can be properly placed in a 2x2 grid")
 
 def test_agent_placement_2():
@@ -27,11 +27,11 @@ def test_agent_placement_2():
     grid.resource_matrix_wood = np.array([[1, 1], [1, 1]])
     Simulation(num_agents, grid)
 
-    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "Not all elements in agent_matrix are of type int"
-    assert np.issubdtype(grid.resource_matrix_wood.dtype, np.integer), "Not all elements in resource_matrix_wood are of type int"
-    assert np.all(grid.resource_matrix_wood != 0), f"Wood matrix grid is not filled, while it should be for this test"
-    assert np.all(grid.agent_matrix != 0), f"Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
-    assert np.array_equal(np.sort(grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"There appears to be something wrong with the IDs of the places agents"
+    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
+    assert np.issubdtype(grid.resource_matrix_wood.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_wood are of type int"
+    assert np.all(grid.resource_matrix_wood != 0), f"!!!!!!!!!! Wood matrix grid is not filled, while it should be for this test"
+    assert np.all(grid.agent_matrix != 0), f"!!!!!!!!!! Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
+    assert np.array_equal(np.sort(grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"!!!!!!!!!! There appears to be something wrong with the IDs of the places agents"
     print("4 agents can be placed on a 2x2 grid where all cells contain wood")
 
 
@@ -44,11 +44,11 @@ def test_agent_placement_3():
     grid.resource_matrix_stone = np.array([[1, 1], [1, 1]])
     Simulation(num_agents, grid)
 
-    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "Not all elements in agent_matrix are of type int"
-    assert np.issubdtype(grid.resource_matrix_stone.dtype, np.integer), "Not all elements in resource_matrix_stone are of type int"
-    assert np.all(grid.resource_matrix_stone != 0), f"Stone matrix grid is not filled, while it should be for this test"
-    assert np.all(grid.agent_matrix != 0), f"Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
-    assert np.array_equal(np.sort(grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"There appears to be something wrong with the IDs of the places agents"
+    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
+    assert np.issubdtype(grid.resource_matrix_stone.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_stone are of type int"
+    assert np.all(grid.resource_matrix_stone != 0), f"!!!!!!!!!! Stone matrix grid is not filled, while it should be for this test"
+    assert np.all(grid.agent_matrix != 0), f"!!!!!!!!!! Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
+    assert np.array_equal(np.sort(grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"!!!!!!!!!! There appears to be something wrong with the IDs of the places agents"
     print("4 agents can be placed on a 2x2 grid where all cells contain stone")
 
 
@@ -62,13 +62,13 @@ def test_agent_placement_4():
     grid.resource_matrix_wood = np.array([[1, 1], [1, 1]])
     Simulation(num_agents, grid)
 
-    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "Not all elements in agent_matrix are of type int"
-    assert np.issubdtype(grid.resource_matrix_stone.dtype, np.integer), "Not all elements in resource_matrix_stone are of type int"
-    assert np.issubdtype(grid.resource_matrix_wood.dtype, np.integer), "Not all elements in resource_matrix_wood are of type int"
-    assert np.all(grid.resource_matrix_stone != 0), f"Stone matrix grid is not filled, while it should be for this test"
-    assert np.all(grid.resource_matrix_wood != 0), f"Wood matrix grid is not filled, while it should be for this test"
-    assert np.all(grid.agent_matrix != 0), f"Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
-    assert np.array_equal(np.sort(grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"There appears to be something wrong with the IDs of the places agents"
+    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
+    assert np.issubdtype(grid.resource_matrix_stone.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_stone are of type int"
+    assert np.issubdtype(grid.resource_matrix_wood.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_wood are of type int"
+    assert np.all(grid.resource_matrix_stone != 0), f"!!!!!!!!!! Stone matrix grid is not filled, while it should be for this test"
+    assert np.all(grid.resource_matrix_wood != 0), f"!!!!!!!!!! Wood matrix grid is not filled, while it should be for this test"
+    assert np.all(grid.agent_matrix != 0), f"!!!!!!!!!! Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
+    assert np.array_equal(np.sort(grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"!!!!!!!!!! There appears to be something wrong with the IDs of the places agents"
     print("4 agents can be placed on a 2x2 grid where all cells contain both wood and stone")
     
 
@@ -81,10 +81,10 @@ def test_agent_placement_5():
     grid.house_matrix = np.array([[1, 1], [1, 1]])
     Simulation(num_agents, grid)
 
-    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "Not all elements in agent_matrix are of type int"
-    assert np.issubdtype(grid.house_matrix.dtype, np.integer), "Not all elements in house_matrix are of type int"
-    assert np.all(grid.house_matrix != 0), f"House matrix grid is not filled, while it should be for this test"
-    assert np.all(grid.agent_matrix == 0), f"An agent is placed, while the entire grid is filled with houses!"
+    assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
+    assert np.issubdtype(grid.house_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in house_matrix are of type int"
+    assert np.all(grid.house_matrix != 0), f"!!!!!!!!!! House matrix grid is not filled, while it should be for this test"
+    assert np.all(grid.agent_matrix == 0), f"!!!!!!!!!! An agent is placed, while the entire grid is filled with houses!"
     print("Agents are not placed when the grid is filled with houses!")
 
 
@@ -97,10 +97,10 @@ def test_resource_placement_1():
     grid = Grid(width, height)
     Simulation(num_agents, grid, num_resources=num_resources)
 
-    assert np.issubdtype(grid.resource_matrix_stone.dtype, np.integer), "Not all elements in resource_matrix_stone are of type int"
-    assert np.issubdtype(grid.resource_matrix_wood.dtype, np.integer), "Not all elements in resource_matrix_wood are of type int"
-    assert np.all(grid.resource_matrix_stone != 0), f"{num_resources} stones should be distributed, but an empty cell is still found in an 2x2 grid: {grid.resource_matrix_stone}"
-    assert np.all(grid.resource_matrix_wood != 0), f"{num_resources} wood should be distributed, but an empty cell is still found in an 2x2 grid: {grid.resource_matrix_wood}"
+    assert np.issubdtype(grid.resource_matrix_stone.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_stone are of type int"
+    assert np.issubdtype(grid.resource_matrix_wood.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_wood are of type int"
+    assert np.all(grid.resource_matrix_stone != 0), f"!!!!!!!!!! {num_resources} stones should be distributed, but an empty cell is still found in an 2x2 grid: {grid.resource_matrix_stone}"
+    assert np.all(grid.resource_matrix_wood != 0), f"!!!!!!!!!! {num_resources} wood should be distributed, but an empty cell is still found in an 2x2 grid: {grid.resource_matrix_wood}"
     print("When placing a large amount of resources, there are no empty spots on a small grid")
 
 def test_resource_placement_2():
