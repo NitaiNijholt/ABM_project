@@ -269,7 +269,7 @@ class Agent:
         Calculate the expected income of building a house.
         """
         age = self.sim.t - self.creation_time
-        return income_per_timestep * (self.guessed_lifetime - age)
+        return income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
 
     def expected_income_buying(self, income_per_timestep=1):
         """
