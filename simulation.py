@@ -33,7 +33,6 @@ class Simulation:
         
         # Initialize resources
         self.initialize_resources()
-        print('resources initialized')
 
     def load_distribution_data(self, file_path):
         with open(file_path, 'r') as file:
@@ -95,11 +94,9 @@ class Simulation:
         for _ in range(self.num_resources):
             wood_position = self.get_random_empty_position()
             self.grid.resource_matrix_wood[wood_position] += 1
-            print(f"Placed wood at {wood_position}")
 
             stone_position = self.get_random_empty_position()
             self.grid.resource_matrix_stone[stone_position] += 1
-            print(f"Placed stone at {stone_position}")
 
     def get_random_empty_position(self):
         """
