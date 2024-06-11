@@ -3,6 +3,7 @@ from agent import Agent
 from grid import Grid
 from market import Market
 import matplotlib.pyplot as plt
+import json
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1, wood_rate=1, stone_rate=1, life_expectancy=80, resource_spawn_period=1, agent_spawn_period=1):
@@ -21,6 +22,10 @@ class Simulation:
         self.market = Market(wood_rate, stone_rate)
 
         assert num_agents <= self.grid.width * self.grid.height, "Number of agents cannot be larger than gridpoints"
+        
+        # Load wealth distribution data
+        # MAKE SURE THIS LINE IS BEFORE AGENTS ARE CREATED
+        self.wealth_distribution = self.load_distribution_data('data/distribution_data.json')
 
         # Create number of agents
         for agent_id in range(1, num_agents + 1):
@@ -29,6 +34,11 @@ class Simulation:
         # Initialize resources
         self.initialize_resources()
         print('resources initialized')
+
+    def load_distribution_data(self, file_path):
+        with open(file_path, 'r') as file:
+            distribution_data = json.load(file)
+        return distribution_data
 
     def make_agent(self, agent_id):
         """
@@ -39,8 +49,17 @@ class Simulation:
         # Safe, because of assert statement above
         while not self.grid.if_no_agents_houses(position):
             position = self.get_random_position()
-
-        agent = Agent(self, agent_id, position, self.grid, self.market, creation_time=self.t)
+        
+        # Sample wealth
+        if self.wealth_distribution:
+            middle_values = self.wealth_distribution['middle_values']
+            normalized_percentages = self.wealth_distribution['normalized_percentages']
+            wealth = np.random.choice(middle_values, p=normalized_percentages)
+        else:
+            wealth = 0  
+            
+        agent = Agent(self, agent_id, position, self.grid, self.market, life_expectancy=self.life_expectancy, 
+                      creation_time=self.t, wealth = wealth)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
 
