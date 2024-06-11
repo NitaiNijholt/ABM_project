@@ -40,7 +40,7 @@ class Simulation:
         while not self.grid.if_no_agents_houses(position):
             position = self.get_random_position()
 
-        agent = Agent(self, agent_id, position, self.grid, self.market, life_expectancy=self.life_expectancy, creation_time=self.t)
+        agent = Agent(self, agent_id, position, self.grid, self.market, creation_time=self.t)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
 
