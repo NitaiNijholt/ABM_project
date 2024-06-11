@@ -58,6 +58,7 @@ class DynamicTaxPolicy:
         self.update_tax_brackets()
         self.collect_and_distribute_taxes()
 
+
 # Initialize agents
 
 grid = Grid(4, 4, (2, 2))
