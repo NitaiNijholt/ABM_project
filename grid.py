@@ -2,6 +2,18 @@ import numpy as np
 
 class Grid:
     def __init__(self, width, height, house_cost=(2, 2)):
+        """
+        Initialize grid with given width and height.
+
+        Parameters
+        ----------
+        width : int
+            Width of the grid.
+        height : int
+            Height of the grid.
+        house_cost : tuple
+            Cost of building a house in terms of wood and stone.
+        """
         self.width = width
         self.height = height
         self.house_cost = house_cost
@@ -11,7 +23,6 @@ class Grid:
         self.resource_matrix_stone = np.zeros((self.width, self.height), dtype=int)
         self.house_matrix = np.zeros((self.width, self.height), dtype=int)
         self.houses = {}
-
 
     def get_neighbors(self, position):
         """

@@ -26,4 +26,6 @@ sim.run()
 
 # Check the expected income increase by building a house for each agent
 for id, agent in sim.grid.agents.items():
-    print(f"\nAgent {id} can increase {agent.expected_income_building()} income each time step by building a house")
+    print(f"\nAgent {id} can get {agent.expected_income_building()} income by building a house")
+    print(f"Agent {id} can get {agent.expected_income_buying()} income by buying resources")
+    print(f"Agent {id} can get {agent.expected_income_selling()} income by selling resources")
