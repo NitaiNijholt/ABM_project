@@ -116,8 +116,8 @@ def test_resource_placement_2():
     observed_wood = grid.resource_matrix_wood.flatten()
 
     with np.errstate(divide='ignore', invalid='ignore'):
-        _, p_wood = chisquare(observed_wood, f_exp=(width*height)*[num_resources/(width*height)])
-        _, p_stone = chisquare(observed_stone, f_exp=(width*height)*[num_resources/(width*height)])
+        _, p_wood = chisquare(observed_wood, f_exp=[np.mean(observed_wood)])
+        _, p_stone = chisquare(observed_stone, f_exp=[np.mean(observed_stone)])
         observed_stone[1] += observed_stone[0]
         observed_stone[0] = 0
         _, p_stone_test = chisquare(observed_stone, f_exp=(width*height)*[num_resources/(width*height)])
@@ -132,8 +132,56 @@ def test_resource_placement_2():
     print("The resources appear to be distributed properly in an empty grid")
 
 
+def test_agent_movement_1():
+
+    height = 2
+    width = 2
+    num_agents = 1
+    grid = Grid(width, height)
+    Simulation(num_agents, grid)
+
+    location_history = np.zeros([width, height])
+
+    agent = grid.agents[1]
+    agent.objective = 'Nothing'
+
+    position = agent.position
+
+    location_history[position] += 1
+    agent.step()
+    location_history[agent.position]
+
+    assert not np.array_equal(position, agent.position), "!!!!!!!!!! Agent does not move a random step on an empty grid"
 
 
+    print("Single agent moves a step on an empty grid")
+
+def test_agent_movement_2():
+
+    height = 2
+    width = 2
+    num_agents = 1
+    grid = Grid(width, height)
+    Simulation(num_agents, grid)
+
+    location_history = np.zeros([width, height])
+
+    timesteps = 100000
+    agent = grid.agents[1]
+    agent.objective = 'Nothing'
+
+    for _ in range(timesteps):
+        agent.step()
+        location_history[agent.position] += 1
+    
+
+    measured_history = location_history.flatten()
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        _, p = chisquare(measured_history, f_exp=[np.mean(measured_history)])
+    
+    assert p >= 0.01, f"Movement on empty grid might not be random, or periodic boundary conditions are not working, as visit counts are: {measured_history}"
+    print("Movement of an agent on an empty grid appears to be properly randomized, and periodic boundary conditions function properly")
 
 
 
@@ -174,7 +222,7 @@ def run_stuff(functions_to_test, timeout):
         print("\n\nNo functions timed out!!")
         return
 
-    print(f"\n\nThe following functions timed out or had exceptions after {timeout} seconds, if any:")
+    print(f"\n\nThe following functions timed out or had exceptions after {timeout} seconds:")
     for func in timeout_functions:
         print(func.__name__)
     
@@ -191,13 +239,15 @@ def run_stuff(functions_to_test, timeout):
 
 if __name__ == '__main__':
     functions_to_test = [
-                        # test_agent_placement_1,
-                        # test_agent_placement_2,
-                        # test_agent_placement_3,
-                        # test_agent_placement_4,
-                        # test_agent_placement_5,
+                        test_agent_placement_1,
+                        test_agent_placement_2,
+                        test_agent_placement_3,
+                        test_agent_placement_4,
+                        test_agent_placement_5,
                         test_resource_placement_1,
-                        test_resource_placement_2
+                        test_resource_placement_2,
+                        test_agent_movement_1,
+                        test_agent_movement_2
     ]
 
     timeout = 3
