@@ -1,7 +1,5 @@
 from grid import Grid
 from simulation import Simulation
-from market import Market
-from agent import Agent
 
 
 # +

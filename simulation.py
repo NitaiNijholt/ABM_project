@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import json
 
 class Simulation:
-    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=1, wood_rate=1, stone_rate=1, life_expectancy=80, resource_spawn_period=1, agent_spawn_period=1):
+    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, lifetime_mean=80, resource_spawn_period=1, agent_spawn_period=1):
         self.t = 0
         self.grid = grid
         self.num_agents = num_agents
@@ -14,7 +14,7 @@ class Simulation:
         self.num_resources = num_resources
         self.wealth_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
         self.houses_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
-        self.life_expectancy = life_expectancy
+        self.lifetime_mean = lifetime_mean
         self.resource_spawn_period = resource_spawn_period
         self.agent_spawn_period = agent_spawn_period
 
@@ -58,7 +58,7 @@ class Simulation:
         else:
             wealth = 0  
             
-        agent = Agent(self, agent_id, position, self.grid, self.market, life_expectancy=self.life_expectancy, 
+        agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, 
                       creation_time=self.t, wealth = wealth)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
