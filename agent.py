@@ -269,7 +269,7 @@ class Agent:
         Calculate the expected income of building a house.
         """
         age = self.sim.t - self.creation_time
-        return income_per_timestep * (self.guessed_lifetime - age)
+        return income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
 
     def expected_income_buying(self, income_per_timestep=1):
         """
@@ -290,9 +290,11 @@ class Agent:
     def expected_income_selling(self):
         """
         Calculate the expected income of selling resources.
-        TODO: Should we consider the income collected in the time saved by not building a house?
+        TODO: Should we normalize the expected incomes over time to make them comparable?
         """
-        return self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
+        current_income = self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
+        future_income = self.expected_value_gathering()
+        return current_income + future_income
     
     
     def expected_value_gathering(self):
