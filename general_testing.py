@@ -2,7 +2,6 @@ from grid import Grid
 from simulation import Simulation
 import numpy as np
 import multiprocessing
-import time
 import sys
 
 
@@ -91,22 +90,13 @@ def test_agent_placement_5():
     # assert np.array_equal(np.sort(sim.grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"There appears to be something wrong with the IDs of the places agents"
 
 
-# test_agent_placement()
 
-def pass_function():
-    time.sleep(20)
-    height = 2
-    width = 2
-    num_agents = 1
-    grid = Grid(width, height)
-    grid.house_matrix = np.array([[1, 1], [1, 1]])
-    # sim = Simulation(num_agents, grid)
 
-    # assert np.all(sim.grid.house_matrix != 0), f"House matrix grid is not filled, while it should be for this test"
-    # assert np.all(sim.grid.agent_matrix == 0), f"An agent is placed, while the entire grid is filled with houses!"
-    # print("Agents are not placed when the grid is filled with houses!")
 
-    return
+
+
+
+
 def function_wrapper(func, queue):
     try:
         result = func()
@@ -126,13 +116,6 @@ def run_with_timeout(func, timeout):
         print(f"!!!!!!!!!!!!!!!!!!!!!!! Function {func.__name__} timed out and was terminated !!!!!!!!!!!!!!!!!!!!!!!!!!")
         return func
 
-def run_tests_with_timeout(functions, timeout):
-    results = []
-    for func in functions:
-        result = run_with_timeout(func, timeout)
-        if result:
-            results.append(result)
-    return results
 
 def run_stuff(functions_to_test, timeout):
     failing_functions = []
