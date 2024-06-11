@@ -269,7 +269,7 @@ class Agent:
         Calculate the expected income of building a house.
         """
         age = self.sim.t - self.creation_time
-        return income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        return income_per_timestep * (self.guessed_lifetime - age)
 
     def expected_income_buying(self, income_per_timestep=1):
         """
@@ -293,3 +293,22 @@ class Agent:
         TODO: Should we consider the income collected in the time saved by not building a house?
         """
         return self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
+    
+    
+    def expected_value_gathering(self):
+        """
+        Calculate the expected value of gathering resources in the neighboring cells, including the current position.
+        """
+        # Get the neighboring cells including the current position
+        positions_to_check = self.grid.get_neighbors(self.position) + [self.position]
+        expected_value = 0
+
+        # Check the resources in the neighboring cells and the current position
+        for pos in positions_to_check:
+            if self.grid.resource_matrix_wood[pos] > 0:
+                expected_value += self.grid.resource_matrix_wood[pos] * self.market.wood_rate
+            if self.grid.resource_matrix_stone[pos] > 0:
+                expected_value += self.grid.resource_matrix_stone[pos] * self.market.stone_rate
+
+        return expected_value
+
