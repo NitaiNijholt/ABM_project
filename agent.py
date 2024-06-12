@@ -263,14 +263,20 @@ class Agent:
 
     def expected_income_building(self, income_per_timestep=1):
         """
-        Calculate the expected income of building a house.
+        Calculate the earning rate of building a house.
         """
+        # If agent does not have enough resources, return 0
+        if self.grid.house_cost[0] > self.wood or self.grid.house_cost[1] > self.stone:
+            return 0
+
         age = self.sim.t - self.creation_time
-        return income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        total_income = income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        earning_rate = total_income / self.required_building_time
+        return earning_rate
 
     def expected_income_buying(self, income_per_timestep=1):
         """
-        Calculate the expected income of buying resources.
+        Calculate the earning rate of buying resources.
         """
         num_wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
         num_stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
@@ -279,15 +285,15 @@ class Agent:
         if num_wood_to_buy == 0 and num_stone_to_buy == 0:
             return 0
 
-        # Calculate and return the expected net income
-        gross_income = self.expected_income_building(income_per_timestep)
+        # Calculate and return the net earning rate
+        age = self.sim.t - self.creation_time
+        gross_income = income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
         cost = self.market.wood_rate * num_wood_to_buy + self.market.stone_rate * num_stone_to_buy
-        return gross_income - cost
+        return (gross_income - cost) / (self.required_building_time + 1)
 
     def expected_income_selling(self):
         """
-        Calculate the expected income of selling resources.
-        TODO: Should we normalize the expected incomes over time to make them comparable?
+        Calculate the earning rate of selling resources.
         """
         current_income = self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
         future_income = self.expected_value_gathering()
