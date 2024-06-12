@@ -4,6 +4,7 @@ import numpy as np
 import multiprocessing
 from scipy.stats import chisquare
 
+
 def test_agent_placement_1():
 
     height = 2
@@ -18,6 +19,7 @@ def test_agent_placement_1():
     assert np.all(grid.agent_matrix != 0), f"!!!!!!!!!! Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
     assert np.array_equal(np.sort(grid.agent_matrix, axis=None), np.arange(1, num_agents + 1)), f"!!!!!!!!!! There appears to be something wrong with the IDs of the places agents"
     print("4 agents can be properly placed in a 2x2 grid")
+
 
 def test_agent_placement_2():
 
@@ -80,7 +82,7 @@ def test_agent_placement_5():
 
     height = 2
     width = 2
-    num_agents = 1
+    num_agents = 1 
     grid = Grid(width, height)
     resource_spawn_period = 1000000000000000
     grid.house_matrix = np.array([[1, 1], [1, 1]])
@@ -108,6 +110,7 @@ def test_resource_placement_1():
     assert np.all(grid.resource_matrix_stone != 0), f"!!!!!!!!!! {num_resources} stones should be distributed, but an empty cell is still found in an 2x2 grid: {grid.resource_matrix_stone}"
     assert np.all(grid.resource_matrix_wood != 0), f"!!!!!!!!!! {num_resources} wood should be distributed, but an empty cell is still found in an 2x2 grid: {grid.resource_matrix_wood}"
     print("When placing a large amount of resources, there are no empty spots on a small grid")
+
 
 def test_resource_placement_2():
 
@@ -243,10 +246,11 @@ def test_resource_gathering_1():
 
     assert np.all(grid.resource_matrix_stone == 0), f"!!!!!!!!!! {timesteps} random movements on a 2x2 grid should be enough to collect {num_resources} stone, but but there is still uncollected stone: {grid.resource_matrix_stone}"
     assert np.all(grid.resource_matrix_stone == 0), f"!!!!!!!!!! {timesteps} random movements on a 2x2 grid should be enough to collect {num_resources} stone, but but there is still uncollected stone: {grid.resource_matrix_stone}"
-    assert agent.wood == 1000, f"Agent has too little wood: {agent.wood}"
-    assert agent.stone == 1000, f"Agent has too little stone: {agent.wood}"
+    assert agent.wood == num_resources, f"Agent has too little wood: {agent.wood}"
+    assert agent.stone == num_resources, f"Agent has too little stone: {agent.wood}"
     assert np.all(grid.house_matrix == 0), f"!!!!!!!!!! House costs was set to higher value than combined resources on the grid, so building should not be possible but found: {grid.house_matrix}"
     print("Agent gathers properly")
+
 
 
 
