@@ -253,9 +253,9 @@ class Agent:
             )
     
         self.sim.writer.writerow(consolidated_data)
+        self.sim.make_agent(max(self.grid.agents.keys()) + 1)
         del self.grid.agents[self.agent_id]
         self.grid.agent_matrix[self.position] = 0
-        self.sim.make_agent(max(self.grid.agents.keys()) + 1)
         # print(f"Agent {self.agent_id} died at the age of {self.actual_lifetime}")#################################################
 
         
