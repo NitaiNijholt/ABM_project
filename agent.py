@@ -51,6 +51,13 @@ class Agent:
         self.currently_building_timesteps = 0
         self.required_building_time = 5
 
+        self.wealth_over_time = []
+        self.houses_over_time = []
+        self.gathered_at_timesteps = []
+        self.bought_at_timesteps = []
+        self.sold_at_timesteps = []
+        self.taxes_paid_at_timesteps = []
+
         assert lifetime_distribution in ['gamma', 'lognormal'], 'Invalid lifetime distribution'
 
         # Generate the actual lifetime
@@ -70,6 +77,7 @@ class Agent:
         Generate a lifetime based on the given distribution.
         """
         if lifetime_distribution == 'gamma':
+            
             # mean = shape * scale, var = shape * scale^2
             scale = lifetime_std**2 / lifetime_mean
             shape = lifetime_mean / scale
@@ -111,7 +119,7 @@ class Agent:
         
         # Adjust scores to be non-negative by adding the absolute value of the smallest score
         min_score = min(move_scores)
-        move_scores = [(score - min_score) ** self.objective_alpha for score in move_scores]
+        move_scores = [1 + (score - min_score) ** self.objective_alpha for score in move_scores]
         
         # Use random.choices to select a move based on the scores as weights
         return possible_moves[np.random.choice(len(possible_moves), p=np.array(move_scores)/sum(move_scores))]
@@ -123,7 +131,7 @@ class Agent:
 
         possible_moves = self.find_moves()
         if len(possible_moves) == 0:
-            print(f"Agent {self.agent_id} has no possible moves")
+            # print(f"Agent {self.agent_id} has no possible moves")#############################################################################
             return
         
         if self.objective == 'Trade':
@@ -142,25 +150,25 @@ class Agent:
         """
         Agent collects resources from the current position.
         """
-        print(f"Agent {self.agent_id} at position {self.position} tries to collect resources.")
-        print(f"Current inventory - Wood: {self.wood}, Stone: {self.stone}")
-
-        resources_collected = False
+        # print(f"Agent {self.agent_id} at position {self.position} tries to collect resources.")
+        # print(f"Current inventory - Wood: {self.wood}, Stone: {self.stone}")###########################################################################
 
         if self.grid.resource_matrix_wood[self.position] > 0:
             self.wood += 1
             self.grid.resource_matrix_wood[self.position] -= 1
-            resources_collected = True
+            self.gathered_at_timesteps.append(1)
+            return True
+            # print(f"Collected resources succesfully! New inventory - Wood: {self.wood}, Stone: {self.stone}")#########################################################
 
         if self.grid.resource_matrix_stone[self.position] > 0:
             self.stone += 1
             self.grid.resource_matrix_stone[self.position] -= 1
-            resources_collected = True
-
-        if resources_collected:
-            print(f"Collected resources succesfully! New inventory - Wood: {self.wood}, Stone: {self.stone}")
+            self.gathered_at_timesteps.append(1)
             return True
-        print(f"No resources collected at position {self.position}")
+            # print(f"Collected resources succesfully! New inventory - Wood: {self.wood}, Stone: {self.stone}")#########################################################
+
+        # print(f"No resources collected at position {self.position}")###############################################################################
+        self.gathered_at_timesteps.append(0)
         return False
 
     def build_house(self, income_per_timestep=1):
@@ -172,7 +180,7 @@ class Agent:
         house = House(self.agent_id, self.position, income_per_timestep=income_per_timestep)
         self.houses.append(house)
         self.grid.houses[self.position] = house
-        print(f"Agent {self.agent_id} completed building a house at {self.position}")
+        # print(f"Agent {self.agent_id} completed building a house at {self.position}")#################################################################
 
 
     def start_building_house(self):
@@ -184,7 +192,7 @@ class Agent:
         if self.wood >= wood_cost and self.stone >= stone_cost and self.grid.house_matrix[self.position] == 0:
             self.wood -= wood_cost
             self.stone -= stone_cost
-            print(f"Agent {self.agent_id} starts building a house at {self.position}")
+            # print(f"Agent {self.agent_id} starts building a house at {self.position}")##################################################################################
             self.currently_building_timesteps = 1
         
     def collect_income(self):
@@ -193,7 +201,7 @@ class Agent:
         """
         income_collected = sum(house.income_per_timestep for house in self.houses)
         self.wealth += income_collected
-        print(f"Agent {self.agent_id} collected {income_collected} income from {len(self.houses)} houses. Total wealth: {self.wealth}")
+        # print(f"Agent {self.agent_id} collected {income_collected} income from {len(self.houses)} houses. Total wealth: {self.wealth}")#####################################
 
     def step(self):
         """
@@ -202,7 +210,7 @@ class Agent:
 
         # If the agent is currently building
         if self.currently_building_timesteps > 0:
-            print(f"Agent is currently building a house and cannot do other things. Currently building {self.currently_building_timesteps}/{self.required_building_time}")
+            # print(f"Agent is currently building a house and cannot do other things. Currently building {self.currently_building_timesteps}/{self.required_building_time}")########################
 
             self.currently_building_timesteps += 1
 
@@ -213,26 +221,42 @@ class Agent:
 
         # Agent can do other things if he is not building
         else:
-
+            
             # Agent tries to collect resource, and nothing else if he succeeds
             if not self.collect_resources():
 
-                if self.position == self.market_position:
+                if self.position == self.market_position and self.objective == 'Trade':
                     self.trade(wood_to_trade=1, stone_to_trade=1)
                 self.start_building_house()
                 self.move()
     
         # Agent can always collect
         self.collect_income()
+        self.wealth_over_time.append(self.wealth)
+        self.houses_over_time.append(len(self.houses))
+        self.bought_at_timesteps.append(0)
+        self.sold_at_timesteps.append(0)
+        self.taxes_paid_at_timesteps.append(0)
 
         # Agent dies when he reaches his life expectancy
         if self.sim.t >= self.creation_time + self.actual_lifetime:
             self.die()
     
     def die(self):
+        consolidated_data = (
+            self.wealth_over_time +
+            self.houses_over_time +
+            self.gathered_at_timesteps +
+            self.bought_at_timesteps +
+            self.sold_at_timesteps +
+            self.taxes_paid_at_timesteps
+            )
+    
+        self.sim.writer.writerow(consolidated_data)
         del self.grid.agents[self.agent_id]
         self.grid.agent_matrix[self.position] = 0
-        print(f"Agent {self.agent_id} died at the age of {self.actual_lifetime}")
+        self.sim.make_agent(max(self.grid.agents.keys()) + 1)
+        # print(f"Agent {self.agent_id} died at the age of {self.actual_lifetime}")#################################################
 
         
     def trade(self, wood_to_trade=0, stone_to_trade=0):
@@ -249,18 +273,18 @@ class Agent:
                 wealth_received = self.market.trade_wood_for_wealth(wood_to_trade)
                 self.wood -= wood_to_trade
                 self.wealth += wealth_received
-                print(f"Agent {self.agent_id} traded {wood_to_trade} wood for {wealth_received} wealth")
-            else:
-                print(f"Agent {self.agent_id} does not have enough wood to trade")
+                # print(f"Agent {self.agent_id} traded {wood_to_trade} wood for {wealth_received} wealth")######################################
+            # else:
+                # print(f"Agent {self.agent_id} does not have enough wood to trade")################################################################
 
         if stone_to_trade > 0:
             if stone_to_trade <= self.stone:
                 wealth_received = self.market.trade_stone_for_wealth(stone_to_trade)
                 self.stone -= stone_to_trade
                 self.wealth += wealth_received
-                print(f"Agent {self.agent_id} traded {stone_to_trade} stone for {wealth_received} wealth")
-            else:
-                print(f"Agent {self.agent_id} does not have enough stone to trade")
+            #     print(f"Agent {self.agent_id} traded {stone_to_trade} stone for {wealth_received} wealth")
+            # else:
+            #     print(f"Agent {self.agent_id} does not have enough stone to trade")#########################################################################
         
         self.objective = 'Nothing'
 

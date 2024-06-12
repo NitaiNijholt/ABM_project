@@ -9,9 +9,10 @@ def test_agent_placement_1():
     height = 2
     width = 2
     num_agents = 4
+    resource_spawn_period = 10000000000000
 
     grid = Grid(width, height)
-    Simulation(num_agents, grid)
+    Simulation(num_agents, grid, resource_spawn_period=resource_spawn_period)
 
     assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
     assert np.all(grid.agent_matrix != 0), f"!!!!!!!!!! Agent matrix grid is not filled, while {num_agents} are placed on a {width}x{height} grid"
@@ -23,9 +24,10 @@ def test_agent_placement_2():
     height = 2
     width = 2
     num_agents = 4
+    resource_spawn_period = 1000000000000000
     grid = Grid(width, height)
     grid.resource_matrix_wood = np.array([[1, 1], [1, 1]])
-    Simulation(num_agents, grid)
+    Simulation(num_agents, grid, resource_spawn_period=resource_spawn_period)
 
     assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
     assert np.issubdtype(grid.resource_matrix_wood.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_wood are of type int"
@@ -41,8 +43,9 @@ def test_agent_placement_3():
     width = 2
     num_agents = 4
     grid = Grid(width, height)
+    resource_spawn_period = 1000000000000000
     grid.resource_matrix_stone = np.array([[1, 1], [1, 1]])
-    Simulation(num_agents, grid)
+    Simulation(num_agents, grid, resource_spawn_period=resource_spawn_period)
 
     assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
     assert np.issubdtype(grid.resource_matrix_stone.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_stone are of type int"
@@ -58,9 +61,10 @@ def test_agent_placement_4():
     width = 2
     num_agents = 4
     grid = Grid(width, height)
+    resource_spawn_period = 10000000000000
     grid.resource_matrix_stone = np.array([[1, 1], [1, 1]])
     grid.resource_matrix_wood = np.array([[1, 1], [1, 1]])
-    Simulation(num_agents, grid)
+    Simulation(num_agents, grid, resource_spawn_period=resource_spawn_period)
 
     assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
     assert np.issubdtype(grid.resource_matrix_stone.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_stone are of type int"
@@ -76,10 +80,11 @@ def test_agent_placement_5():
 
     height = 2
     width = 2
-    num_agents = 4
+    num_agents = 1
     grid = Grid(width, height)
+    resource_spawn_period = 1000000000000000
     grid.house_matrix = np.array([[1, 1], [1, 1]])
-    Simulation(num_agents, grid)
+    Simulation(num_agents, grid, resource_spawn_period=resource_spawn_period)
 
     assert np.issubdtype(grid.agent_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in agent_matrix are of type int"
     assert np.issubdtype(grid.house_matrix.dtype, np.integer), "!!!!!!!!!! Not all elements in house_matrix are of type int"
@@ -95,7 +100,8 @@ def test_resource_placement_1():
     num_agents = 0
     num_resources = 10000
     grid = Grid(width, height)
-    Simulation(num_agents, grid, num_resources=num_resources)
+    resource_spawn_period = 100000000000000
+    Simulation(num_agents, grid, num_resources=num_resources, resource_spawn_period=resource_spawn_period)
 
     assert np.issubdtype(grid.resource_matrix_stone.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_stone are of type int"
     assert np.issubdtype(grid.resource_matrix_wood.dtype, np.integer), "!!!!!!!!!! Not all elements in resource_matrix_wood are of type int"
@@ -110,7 +116,8 @@ def test_resource_placement_2():
     num_agents = 0
     num_resources = 100000
     grid = Grid(width, height)
-    Simulation(num_agents, grid, num_resources=num_resources)
+    resource_spawn_period = 10000000000000
+    Simulation(num_agents, grid, num_resources=num_resources, resource_spawn_period=resource_spawn_period)
 
     observed_stone = grid.resource_matrix_stone.flatten()
     observed_wood = grid.resource_matrix_wood.flatten()
@@ -138,7 +145,8 @@ def test_agent_movement_1():
     width = 2
     num_agents = 1
     grid = Grid(width, height)
-    Simulation(num_agents, grid)
+    resource_spawn_period = 1000000000000000
+    Simulation(num_agents, grid, resource_spawn_period=resource_spawn_period)
 
     location_history = np.zeros([width, height])
 
@@ -146,15 +154,19 @@ def test_agent_movement_1():
     agent.objective = 'Nothing'
 
     position = agent.position
+    agent_matrix = grid.agent_matrix.copy()
 
     location_history[position] += 1
     agent.step()
     location_history[agent.position]
 
-    assert not np.array_equal(position, agent.position), "!!!!!!!!!! Agent does not move a random step on an empty grid"
-
-
+    assert not np.array_equal(position, agent.position), "!!!!!!!!!! Agent does not change his position when making a random move on an empty grid"
+    assert not np.array_equal(agent_matrix, grid.agent_matrix), f"!!!!!!!!!! Agent matrix does not change when making a random move on an empty grid: {agent_matrix, grid.agent_matrix}"
+    assert agent.wood == 0, f"!!!!!!!!!! Agent should not have been able to collect wood but has: {agent.wood}"
+    assert agent.stone == 0, f"!!!!!!!!!! Agent should not have been able to collect stone but has: {agent.stone}"
+    assert len(agent.houses) == 0, f"!!!!!!!!!! Agent should not have been able to build houses but has: {agent.houses}"
     print("Single agent moves a step on an empty grid")
+
 
 def test_agent_movement_2():
 
@@ -162,7 +174,8 @@ def test_agent_movement_2():
     width = 2
     num_agents = 1
     grid = Grid(width, height)
-    Simulation(num_agents, grid)
+    resource_spawn_period = 10000000000000000
+    Simulation(num_agents, grid, resource_spawn_period=resource_spawn_period)
 
     location_history = np.zeros([width, height])
 
@@ -173,7 +186,6 @@ def test_agent_movement_2():
     for _ in range(timesteps):
         agent.step()
         location_history[agent.position] += 1
-    
 
     measured_history = location_history.flatten()
 
@@ -181,7 +193,60 @@ def test_agent_movement_2():
         _, p = chisquare(measured_history, f_exp=[np.mean(measured_history)])
     
     assert p >= 0.01, f"Movement on empty grid might not be random, or periodic boundary conditions are not working, as visit counts are: {measured_history}"
+    assert np.all(grid.resource_matrix_stone == 0), f"!!!!!!!!!! {timesteps} random movements on a 2x2 grid should not end with stone on grid when it does not spawn, but found: {grid.resource_matrix_stone}"
+    assert np.all(grid.resource_matrix_wood == 0), f"!!!!!!!!!! {timesteps} random movements on a 2x2 grid should not end with wood on grid when it does not spawn, but found: {grid.resource_matrix_wood}"
+    assert np.all(grid.house_matrix == 0), f"!!!!!!!!!! {timesteps} random movements on a 2x2 grid should not end with houses on grid when there are no resources spawn, but found: {grid.house_matrix}"
+    assert agent.wood == 0, f"!!!!!!!!!! Agent should not have been able to collect wood but has: {agent.wood}"
+    assert agent.stone == 0, f"!!!!!!!!!! Agent should not have been able to collect stone but has: {agent.stone}"
+    assert len(agent.houses) == 0, f"!!!!!!!!!! Agent should not have been able to build houses but has: {agent.houses}"
     print("Movement of an agent on an empty grid appears to be properly randomized, and periodic boundary conditions function properly")
+
+
+def test_agent_movement_3():
+
+    height = 2
+    width = 2
+    num_agents = 1
+    grid = Grid(width, height)
+    resource_spawn_period = 10000000000000000000
+    Simulation(num_agents, grid, resource_spawn_period=resource_spawn_period)
+
+    timesteps = 1000
+    agent = grid.agents[1]
+    agent.objective = 'Nothing'
+
+    for _ in range(timesteps):
+        assert len(agent.find_moves()) == 4, "single agent on an empty 2x2 grid does not always appear to have 4 possible moves"
+        agent.step()
+    print("Single agent on 2x2 grid always has 4 possible moves")
+
+
+def test_resource_gathering_1():
+
+    height = 2
+    width = 2
+    num_agents = 1
+    num_resources = 1000
+
+    # High house cost so agent will never build
+    house_cost = (100000, 100000)
+    grid = Grid(width, height, house_cost=house_cost)
+    resource_spawn_period = 10000000000000000
+    Simulation(num_agents, grid, num_resources=num_resources, resource_spawn_period=resource_spawn_period)
+
+    timesteps = 100000
+    agent = grid.agents[1]
+    agent.objective = 'Nothing'
+
+    for _ in range(timesteps):
+        agent.step()
+
+    assert np.all(grid.resource_matrix_stone == 0), f"!!!!!!!!!! {timesteps} random movements on a 2x2 grid should be enough to collect {num_resources} stone, but but there is still uncollected stone: {grid.resource_matrix_stone}"
+    assert np.all(grid.resource_matrix_stone == 0), f"!!!!!!!!!! {timesteps} random movements on a 2x2 grid should be enough to collect {num_resources} stone, but but there is still uncollected stone: {grid.resource_matrix_stone}"
+    assert agent.wood == 1000, f"Agent has too little wood: {agent.wood}"
+    assert agent.stone == 1000, f"Agent has too little stone: {agent.wood}"
+    assert np.all(grid.house_matrix == 0), f"!!!!!!!!!! House costs was set to higher value than combined resources on the grid, so building should not be possible but found: {grid.house_matrix}"
+    print("Agent gathers properly")
 
 
 
@@ -247,7 +312,8 @@ if __name__ == '__main__':
                         test_resource_placement_1,
                         test_resource_placement_2,
                         test_agent_movement_1,
-                        test_agent_movement_2
+                        test_agent_movement_2,
+                        test_resource_gathering_1
     ]
 
     timeout = 3

@@ -1,13 +1,16 @@
 from grid import Grid
 from simulation import Simulation
+import time
+
+start = time.time()
 
 
 # +
 # Params
-height = 5
-width = 5
-num_agents = 1
-n_timesteps = 25
+height = 50
+width = 50
+num_agents = 100
+n_timesteps = 500
 num_resources = 8
 house_cost = (2, 2)  # Define the cost of building a house
 wood_rate = 2  # Define the exchange rate for wood to wealth
@@ -22,8 +25,12 @@ sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, num_resources=num_re
 # Run simulation
 sim.run()
 
-# Check the expected income increase by building a house for each agent
-for id, agent in sim.grid.agents.items():
-    print(f"\nAgent {id} can get {agent.expected_income_building()} income by building a house")
-    print(f"Agent {id} can get {agent.expected_income_buying()} income by buying resources")
-    print(f"Agent {id} can get {agent.expected_income_selling()} income by selling resources")
+end = time.time()
+
+print(f"Running time: {end-start} seconds")
+
+# # Check the expected income increase by building a house for each agent
+# for id, agent in sim.grid.agents.items():
+#     print(f"\nAgent {id} can get {agent.expected_income_building()} income by building a house")
+#     print(f"Agent {id} can get {agent.expected_income_buying()} income by buying resources")
+#     print(f"Agent {id} can get {agent.expected_income_selling()} income by selling resources")
