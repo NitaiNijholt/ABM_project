@@ -6,7 +6,7 @@ from house import House
 # +
 class Agent:
     def __init__(self, sim, agent_id, position, grid, market, creation_time, 
-                 wealth=0, wood=50, stone=0, lifetime_distribution='gamma', lifetime_mean=80, lifetime_std=10):
+                 wealth=0, wood=0, stone=0, lifetime_distribution='gamma', lifetime_mean=80, lifetime_std=10):
         """
         Initialize agent with given position, wealth, wood, stone, grid, market, life expectancy, and creation time.
 
@@ -51,6 +51,7 @@ class Agent:
 
         self.currently_building_timesteps = 0
         self.required_building_time = 5
+        self.current_action = 'Nothing'
 
         self.wealth_over_time = []
         self.houses_over_time = []
@@ -67,6 +68,7 @@ class Agent:
         # Guess the lifetime
         self.guessed_lifetime = self.generate_lifetime(lifetime_distribution, lifetime_mean, lifetime_std)
 
+        # TODO: Do we need this?
         # Current objective of the agent. Now, 'Trade' is the only thing that does something
         self.objective = 'Trade'
 
@@ -131,12 +133,10 @@ class Agent:
         """
 
         possible_moves = self.find_moves()
+        print(f"Agent {self.agent_id} at position {self.position} tries to move. Possible moves: {possible_moves}")
         if len(possible_moves) == 0:
             # print(f"Agent {self.agent_id} has no possible moves")#############################################################################
             return
-        
-        if self.objective == 'Trade':
-            self.trade()
 
         # Move to a random neighboring cell
         new_position = possible_moves[np.random.randint(len(possible_moves))]
@@ -145,10 +145,11 @@ class Agent:
         self.grid.agent_matrix[self.position] = 0
         self.grid.agent_matrix[new_position] = self.agent_id
         self.position = new_position
+        print(f"Agent {self.agent_id} moved to position {self.position}")
 
-    def collect_resources(self):
+    def gather(self):
         """
-        Agent collects resources from the current position.
+        Agent gathers resources from the current position.
         """
         # print(f"Agent {self.agent_id} at position {self.position} tries to collect resources.")
         # print(f"Current inventory - Wood: {self.wood}, Stone: {self.stone}")###########################################################################
@@ -157,19 +158,16 @@ class Agent:
             self.wood += 1
             self.grid.resource_matrix_wood[self.position] -= 1
             self.gathered_at_timesteps.append(1)
-            return True
             # print(f"Collected resources succesfully! New inventory - Wood: {self.wood}, Stone: {self.stone}")#########################################################
 
         if self.grid.resource_matrix_stone[self.position] > 0:
             self.stone += 1
             self.grid.resource_matrix_stone[self.position] -= 1
             self.gathered_at_timesteps.append(1)
-            return True
             # print(f"Collected resources succesfully! New inventory - Wood: {self.wood}, Stone: {self.stone}")#########################################################
 
         # print(f"No resources collected at position {self.position}")###############################################################################
         self.gathered_at_timesteps.append(0)
-        return False
 
     def build_house(self, income_per_timestep=1):
         """
@@ -182,18 +180,15 @@ class Agent:
         self.grid.houses[self.position] = house
         # print(f"Agent {self.agent_id} completed building a house at {self.position}")#################################################################
 
-
-    def start_building_house(self):
+    def build(self):
         """
         Agent builds a house at the current position if the agent has enough resources and the cell is empty.
         """
-
         wood_cost, stone_cost = self.grid.house_cost
-        if self.wood >= wood_cost and self.stone >= stone_cost and self.grid.house_matrix[self.position] == 0:
-            self.wood -= wood_cost
-            self.stone -= stone_cost
-            # print(f"Agent {self.agent_id} starts building a house at {self.position}")##################################################################################
-            self.currently_building_timesteps = 1
+        self.wood -= wood_cost
+        self.stone -= stone_cost
+        # print(f"Agent {self.agent_id} starts building a house at {self.position}")##################################################################################
+        self.currently_building_timesteps = 1
         
     def collect_income(self):
         """
@@ -221,17 +216,27 @@ class Agent:
 
         # Agent can do other things if he is not building
         else:
+            # Agent decides to build, buy, sell, gather or move
+            actions = [self.build, self.buy, self.sell, self.gather, self.move]
+            earning_rates = [self.earning_rate_building(),
+                            self.earning_rate_buying(),
+                            self.earning_rate_selling(),
+                            self.earning_rate_gathering(),
+                            self.earning_rate_random_moving()]
+            print(f"Agent {self.agent_id} at position {self.position} tries to decide what to do. Earning rates: {earning_rates}")
+            action = actions[np.argmax(earning_rates)]
+
+            # Update the current_action based on the action taken
+            self.current_action = action.__name__
             
-            # Agent tries to collect resource, and nothing else if he succeeds
-            if not self.collect_resources():
-
-                self.trade()
-
-                self.start_building_house()
-                self.move()
+            # Perform the action
+            action()
     
         # Agent can always collect
         self.collect_income()
+
+        # TODO: Update data collection based on the action taken
+        # Data collection
         self.wealth_over_time.append(self.wealth)
         self.houses_over_time.append(len(self.houses))
         self.bought_at_timesteps.append(0)
@@ -305,6 +310,27 @@ class Agent:
         elif self.wealth > 150:
             self.place_order(order_books, 'stone', 'buy', price=110, quantity=1)
 
+    def buy(self):
+        """
+        Agent buys resources from the market.
+        TODO: Implement this function.
+        """
+        # Just for test, modify this later
+        wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
+        stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
+        self.wealth -= self.market.wood_rate * wood_to_buy + self.market.stone_rate * stone_to_buy
+        self.wood += wood_to_buy
+        self.stone += stone_to_buy
+
+    def sell(self):
+        """
+        Agent sells resources to the market.
+        TODO: Implement this function.
+        """
+        # Just for test, modify this later
+        self.wealth += self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
+        self.wood = 0
+        self.stone = 0
 
     def place_order(self, order_books, resource_type, order_type, price, quantity):
         """
@@ -340,7 +366,7 @@ class Agent:
         print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
 
 
-    def expected_income_building(self, income_per_timestep=1):
+    def earning_rate_building(self, income_per_timestep=1):
         """
         Calculate the earning rate of building a house.
         """
@@ -353,32 +379,39 @@ class Agent:
         earning_rate = total_income / self.required_building_time
         return earning_rate
 
-    def expected_income_buying(self, income_per_timestep=1):
+    def earning_rate_buying(self, income_per_timestep=1):
         """
         Calculate the earning rate of buying resources.
         """
         num_wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
         num_stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
+        cost = self.market.wood_rate * num_wood_to_buy + self.market.stone_rate * num_stone_to_buy
 
         # If agent has enough resources, return 0
         if num_wood_to_buy == 0 and num_stone_to_buy == 0:
             return 0
 
+        # If agent doesn't have enough wealth, return 0
+        if cost > self.wealth:
+            return 0
+
         # Calculate and return the net earning rate
         age = self.sim.t - self.creation_time
-        gross_income = income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
-        cost = self.market.wood_rate * num_wood_to_buy + self.market.stone_rate * num_stone_to_buy
-        return (gross_income - cost) / (self.required_building_time + 1)
+        required_time = self.required_building_time + 1
+        gross_income = income_per_timestep * (self.guessed_lifetime - age - required_time)
+        return (gross_income - cost) / required_time
 
-    def expected_income_selling(self):
+    def earning_rate_selling(self):
         """
         Calculate the earning rate of selling resources.
         """
-        current_income = self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
-        future_income = self.expected_value_gathering()
-        return current_income + future_income
+        # If agent does not have any resources, return 0
+        if self.wood == 0 and self.stone == 0:
+            return 0
+        earning_rate = self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
+        return earning_rate
     
-    
+    # TODO: Compare this with the earning rate of gathering resources
     def expected_value_gathering(self):
         """
         Calculate the expected value of gathering resources in the neighboring cells, including the current position.
@@ -396,3 +429,31 @@ class Agent:
 
         return expected_value
 
+    def earning_rate_gathering(self):
+        """
+        Calculate the earning rate of gathering resources in the current position.
+        """
+        if self.grid.resource_matrix_wood[self.position] == 0:
+            return 0
+
+        # Simply use the price of the resources to estimate the earning rate
+        earning_rate = self.market.wood_rate * min(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * min(1, self.grid.resource_matrix_stone[self.position])  # Gather at most 1 unit of each resource per time step
+        return earning_rate
+
+    def earning_rate_random_moving(self):
+        """
+        Calculate the earning rate of moving to a neighboring cell randomly.
+        """
+        positions_to_check = self.grid.get_neighbors(self.position) # 4 Von Neumann neighborhood
+        earning_rate = 0
+        for pos in positions_to_check:
+            wood, stone = self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]
+
+            # 1 time step to move to the cell. Time steps to gather resources is max(wood, stone). 
+            required_time = max(wood, stone) + 1
+
+            # Simply use the price of the resources to estimate the earning rate
+            earning_rate += (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+        
+        # The probability of moving to a neighboring cell is 1/len(positions_to_check)
+        return earning_rate / len(positions_to_check)
