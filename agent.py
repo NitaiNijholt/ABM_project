@@ -44,7 +44,6 @@ class Agent:
         self.grid = grid
         self.market = market
         self.houses = []
-        self.market_position = (0, 0)  # Define the market position
         self.creation_time = creation_time
         self.sim = sim
 
@@ -216,9 +215,7 @@ class Agent:
 
             # Agent tries to collect resource, and nothing else if he succeeds
             if not self.collect_resources():
-
-                if self.position == self.market_position:
-                    self.trade(wood_to_trade=1, stone_to_trade=1)
+                self.trade(wood_to_trade=1, stone_to_trade=1)
                 self.start_building_house()
                 self.move()
     
