@@ -3,8 +3,10 @@ from scipy.stats import gamma, lognorm
 from grid import Grid
 from house import House
 
+# +
 class Agent:
-    def __init__(self, sim, agent_id, position, grid, market, creation_time, wealth=0, wood=0, stone=0, lifetime_distribution='gamma', lifetime_mean=80, lifetime_std=10):
+    def __init__(self, sim, agent_id, position, grid, market, creation_time, 
+                 wealth=0, wood=50, stone=0, lifetime_distribution='gamma', lifetime_mean=80, lifetime_std=10):
         """
         Initialize agent with given position, wealth, wood, stone, grid, market, life expectancy, and creation time.
 
@@ -134,11 +136,10 @@ class Agent:
             return
         
         if self.objective == 'Trade':
-            direction_to_market = self.get_direction_to_position(self.market_position)
-            new_position = self.get_random_move_in_direction(direction_to_market, possible_moves)
-            
-        else:
-            new_position = possible_moves[np.random.randint(len(possible_moves))]
+            self.trade()
+
+        # Move to a random neighboring cell
+        new_position = possible_moves[np.random.randint(len(possible_moves))]
 
         # Move agent on the grid
         self.grid.agent_matrix[self.position] = 0
@@ -224,7 +225,7 @@ class Agent:
             # Agent tries to collect resource, and nothing else if he succeeds
             if not self.collect_resources():
 
-                self.trade(wood_to_trade=1, stone_to_trade=1)
+                self.trade()
 
                 self.start_building_house()
                 self.move()
@@ -258,34 +259,86 @@ class Agent:
         # print(f"Agent {self.agent_id} died at the age of {self.actual_lifetime}")#################################################
 
         
-    def trade(self, wood_to_trade=0, stone_to_trade=0):
-        """
-        Agent trades resources at the market.
+#     def trade(self, wood_to_trade=0, stone_to_trade=0):
+#         """
+#         Agent trades resources at the market.
         
-        Currently: If agent has any resources at all, go to market and trade
-        TODO: Walking to the market takes multiple timesteps if far away. Now agents teleport
-        TODO: Add utility function such that it determines how and when agent will trade
-        """
+#         Currently: If agent has any resources at all, go to market and trade
+#         TODO: Walking to the market takes multiple timesteps if far away. Now agents teleport
+#         TODO: Add utility function such that it determines how and when agent will trade
+#         """
 
-        if wood_to_trade > 0:
-            if wood_to_trade <= self.wood:
-                wealth_received = self.market.trade_wood_for_wealth(wood_to_trade)
-                self.wood -= wood_to_trade
-                self.wealth += wealth_received
-                # print(f"Agent {self.agent_id} traded {wood_to_trade} wood for {wealth_received} wealth")######################################
-            # else:
-                # print(f"Agent {self.agent_id} does not have enough wood to trade")################################################################
+#         if wood_to_trade > 0:
+#             if wood_to_trade <= self.wood:
+#                 wealth_received = self.market.trade_wood_for_wealth(wood_to_trade)
+#                 self.wood -= wood_to_trade
+#                 self.wealth += wealth_received
+#                 # print(f"Agent {self.agent_id} traded {wood_to_trade} wood for {wealth_received} wealth")######################################
+#             # else:
+#                 # print(f"Agent {self.agent_id} does not have enough wood to trade")################################################################
 
-        if stone_to_trade > 0:
-            if stone_to_trade <= self.stone:
-                wealth_received = self.market.trade_stone_for_wealth(stone_to_trade)
-                self.stone -= stone_to_trade
-                self.wealth += wealth_received
-            #     print(f"Agent {self.agent_id} traded {stone_to_trade} stone for {wealth_received} wealth")
-            # else:
-            #     print(f"Agent {self.agent_id} does not have enough stone to trade")#########################################################################
+#         if stone_to_trade > 0:
+#             if stone_to_trade <= self.stone:
+#                 wealth_received = self.market.trade_stone_for_wealth(stone_to_trade)
+#                 self.stone -= stone_to_trade
+#                 self.wealth += wealth_received
+#             #     print(f"Agent {self.agent_id} traded {stone_to_trade} stone for {wealth_received} wealth")
+#             # else:
+#             #     print(f"Agent {self.agent_id} does not have enough stone to trade")#########################################################################
         
-        self.objective = 'Nothing'
+#         self.objective = 'Nothing'
+
+    # Random trading strategy for testing
+    def trade(self):
+        """
+        Agent decides to trade resources in the market.
+        """
+        order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
+
+        if self.wood > 2:
+            self.place_order(order_books, 'wood', 'sell', price=90, quantity=1)
+        elif self.wealth > 100:
+            self.place_order(order_books, 'wood', 'buy', price=100, quantity=1)
+
+        if self.stone > 2:
+            self.place_order(order_books, 'stone', 'sell', price=100, quantity=1)
+        elif self.wealth > 150:
+            self.place_order(order_books, 'stone', 'buy', price=110, quantity=1)
+
+
+    def place_order(self, order_books, resource_type, order_type, price, quantity):
+        """
+        Place a buy or sell order in the order book (market).
+
+        Parameters
+        ----------
+        order_books : dict
+            A dictionary containing the order books for different resources.
+            Example: {'wood': wood_order_book, 'stone': stone_order_book}
+        resource_type : str
+            The type of resource to trade ('wood' or 'stone').
+        order_type : str
+            The type of order to place ('buy' or 'sell').
+        price : float
+            The price at which to place the order.
+        """
+        if resource_type not in order_books:
+            raise ValueError(f"Invalid resource type: {resource_type}")
+
+        order_book = order_books[resource_type]
+
+        if order_type == 'buy':
+            for _ in range(quantity):
+                order_book.place_bid(self.agent_id, price)
+        elif order_type == 'sell':
+            for _ in range(quantity):
+                order_book.place_ask(self.agent_id, price)
+        else:
+            raise ValueError(f"Invalid order type: {order_type}")
+
+        # Log the order placement for debugging
+        print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
+
 
     def expected_income_building(self, income_per_timestep=1):
         """
