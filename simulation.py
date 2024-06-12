@@ -4,19 +4,26 @@ from grid import Grid
 from market import Market
 import matplotlib.pyplot as plt
 import json
+import csv
+
 
 class Simulation:
-    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, lifetime_mean=80, resource_spawn_period=1, agent_spawn_period=1):
+    def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, lifetime_mean=80, resource_spawn_period=1, agent_spawn_period=10):
         self.t = 0
         self.grid = grid
         self.num_agents = num_agents
         self.n_timesteps = n_timesteps
         self.num_resources = num_resources
-        self.wealth_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
-        self.houses_over_time = {agent_id: [] for agent_id in range(1, num_agents + 1)}
+        self.wealth_over_time = {}
+        self.houses_over_time = {}
+        self.gathered_at_timesteps = {}
+        self.bought_at_timesteps = {}
+        self.sold_at_timesteps = {}
+        self.taxes_paid_at_timesteps = {}
         self.lifetime_mean = lifetime_mean
         self.resource_spawn_period = resource_spawn_period
         self.agent_spawn_period = agent_spawn_period
+        self.writer = None
 
         # Initialize market
         self.market = Market(wood_rate, stone_rate)
@@ -75,17 +82,19 @@ class Simulation:
         agents = list(self.grid.agents.values())
         for agent in agents:
             agent.step()
-            self.wealth_over_time[agent.agent_id].append(agent.wealth)
-            self.houses_over_time[agent.agent_id].append(len(agent.houses))
         if self.t % self.resource_spawn_period == 0:
             self.spawn_resources()
-        if self.t % self.agent_spawn_period == 0:
-            self.spawn_agents()
+        
+        # Buggy so commented out
+        # if self.t % self.agent_spawn_period == 0:
+        #     self.spawn_agents()
         
     def run(self):
-        for t in range(self.n_timesteps):
-            print(f"\nTimestep {t+1}:")
-            self.timestep()
+        with open('agent_data.csv', mode='a', newline='') as file:
+            self.writer = csv.writer(file)
+            for t in range(self.n_timesteps):
+                print(f"\nTimestep {t+1}:")
+                self.timestep()
 
     def initialize_resources(self):
         """
@@ -113,8 +122,8 @@ class Simulation:
         """
         num_wood = np.sum(self.grid.resource_matrix_wood)
         num_stone = np.sum(self.grid.resource_matrix_stone)
-        print(f"Number of wood resources: {num_wood}")
-        print(f"Number of stone resources: {num_stone}")
+        # print(f"Number of wood resources: {num_wood}")
+        # print(f"Number of stone resources: {num_stone}")###################################################################
 
         for _ in range(self.num_resources - num_wood):
             wood_position = self.get_random_position()
@@ -134,7 +143,7 @@ class Simulation:
         last_agent_id = max(self.grid.agents.keys())
         for _ in range(self.num_agents - current_num_agents):
             last_agent_id += 1
-            self.make_agent(last_agent_id)
+            self.make_agent(max(self.grid.agents.keys()))
 
     def plot_wealth_over_time(self):
         """
