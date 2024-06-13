@@ -1,7 +1,6 @@
 from grid import Grid
 from simulation import Simulation
 
-
 # Params
 height = 4
 width = 4

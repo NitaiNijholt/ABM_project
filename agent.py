@@ -6,7 +6,7 @@ from house import House
 # +
 class Agent:
     def __init__(self, sim, agent_id, position, grid, market, creation_time, 
-                 wealth=0, wood=0, stone=0, lifetime_distribution='gamma', lifetime_mean=80, lifetime_std=10):
+                 wealth=0, wood=0, stone=0, lifetime_distribution='gamma', lifetime_mean=80, lifetime_std=10, income_per_timestep=1):
         """
         Initialize agent with given position, wealth, wood, stone, grid, market, life expectancy, and creation time.
 
@@ -48,10 +48,12 @@ class Agent:
         self.houses = []
         self.creation_time = creation_time
         self.sim = sim
+        self.income_per_timestep = income_per_timestep
 
         self.currently_building_timesteps = 0
         self.required_building_time = 5
         self.current_action = 'Nothing'
+        self.earning_rates = {}
 
         self.wealth_over_time = []
         self.houses_over_time = []
@@ -133,7 +135,7 @@ class Agent:
         """
 
         possible_moves = self.find_moves()
-        print(f"Agent {self.agent_id} at position {self.position} tries to move. Possible moves: {possible_moves}")
+        # print(f"Agent {self.agent_id} at position {self.position} tries to move. Possible moves: {possible_moves}")
         if len(possible_moves) == 0:
             # print(f"Agent {self.agent_id} has no possible moves")#############################################################################
             return
@@ -145,7 +147,6 @@ class Agent:
         self.grid.agent_matrix[self.position] = 0
         self.grid.agent_matrix[new_position] = self.agent_id
         self.position = new_position
-        print(f"Agent {self.agent_id} moved to position {self.position}")
 
     def gather(self):
         """
@@ -169,13 +170,13 @@ class Agent:
         # print(f"No resources collected at position {self.position}")###############################################################################
         self.gathered_at_timesteps.append(0)
 
-    def build_house(self, income_per_timestep=1):
+    def build_house(self):
         """
         Agent completes the construction of a house
         """ 
 
         self.grid.house_matrix[self.position] = 1
-        house = House(self.agent_id, self.position, income_per_timestep=income_per_timestep)
+        house = House(self.agent_id, self.position, income_per_timestep=self.income_per_timestep)
         self.houses.append(house)
         self.grid.houses[self.position] = house
         # print(f"Agent {self.agent_id} completed building a house at {self.position}")#################################################################
@@ -202,6 +203,7 @@ class Agent:
         """
         Agent performs a step: move, collect resources, possibly build a house, and trade.
         """
+        # print(f"Agent {self.agent_id} decides to {self.current_action}. Current wealth: {self.wealth}, Wood: {self.wood}, Stone: {self.stone}, Lifetime: {self.actual_lifetime - (self.sim.t - self.creation_time)}")
 
         # If the agent is currently building
         if self.currently_building_timesteps > 0:
@@ -217,27 +219,27 @@ class Agent:
         # Agent can do other things if he is not building
         else:
             # Agent decides to build, buy, sell, gather or move
-            actions = [self.build, self.buy, self.sell, self.gather, self.move]
-            earning_rates = [self.earning_rate_building(),
-                            self.earning_rate_buying(),
-                            self.earning_rate_selling(),
-                            self.earning_rate_gathering(),
-                            self.earning_rate_random_moving()]
-            print(f"Agent {self.agent_id} at position {self.position} tries to decide what to do. Earning rates: {earning_rates}")
-            action = actions[np.argmax(earning_rates)]
+            actions = [self.move, self.build, self.buy, self.sell, self.gather]
+            self.earning_rates = {'move': self.earning_rate_random_moving(),
+                                'build': self.earning_rate_building(),
+                                'buy': self.earning_rate_buying(),
+                                'sell': self.earning_rate_selling(),
+                                'gather': self.earning_rate_gathering()}
+            # print(f"ER of [m, bd, by, sl, gr]: {earning_rates}")
+            action = actions[np.argmax(self.earning_rates.values())]
 
             # Update the current_action based on the action taken
             self.current_action = action.__name__
             
             # Perform the action
             action()
-    
+
         # Agent can always collect
         self.collect_income()
 
-        # TODO: Update data collection based on the action taken
+        # TODO: Update data collection based on the action taken, and also consider the tax
         # Data collection
-        self.wealth_over_time.append(self.wealth)
+        self.wealth_over_time.append(self.wealth)   # Wealth before tax
         self.houses_over_time.append(len(self.houses))
         self.bought_at_timesteps.append(0)
         self.sold_at_timesteps.append(0)
@@ -248,16 +250,16 @@ class Agent:
             self.die()
     
     def die(self):
-        consolidated_data = (
-            self.wealth_over_time +
-            self.houses_over_time +
-            self.gathered_at_timesteps +
-            self.bought_at_timesteps +
-            self.sold_at_timesteps +
-            self.taxes_paid_at_timesteps
-            )
-    
-        self.sim.writer.writerow(consolidated_data)
+        if self.sim.writer:
+            consolidated_data = (
+                self.wealth_over_time +
+                self.houses_over_time +
+                self.gathered_at_timesteps +
+                self.bought_at_timesteps +
+                self.sold_at_timesteps +
+                self.taxes_paid_at_timesteps
+                )
+            self.sim.writer.writerow(consolidated_data)
         self.sim.make_agent(max(self.grid.agents.keys()) + 1)
         del self.grid.agents[self.agent_id]
         self.grid.agent_matrix[self.position] = 0
@@ -313,24 +315,16 @@ class Agent:
     def buy(self):
         """
         Agent buys resources from the market.
-        TODO: Implement this function.
         """
-        # Just for test, modify this later
         wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
         stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
-        self.wealth -= self.market.wood_rate * wood_to_buy + self.market.stone_rate * stone_to_buy
-        self.wood += wood_to_buy
-        self.stone += stone_to_buy
+        self.market.add_buyer(self, wood_to_buy, stone_to_buy)
 
     def sell(self):
         """
-        Agent sells resources to the market.
-        TODO: Implement this function.
+        Agent sells all resources to the market.
         """
-        # Just for test, modify this later
-        self.wealth += self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
-        self.wood = 0
-        self.stone = 0
+        self.market.add_seller(self, self.wood, self.stone)
 
     def place_order(self, order_books, resource_type, order_type, price, quantity):
         """
@@ -366,7 +360,7 @@ class Agent:
         print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
 
 
-    def earning_rate_building(self, income_per_timestep=1):
+    def earning_rate_building(self):
         """
         Calculate the earning rate of building a house.
         """
@@ -375,11 +369,11 @@ class Agent:
             return 0
 
         age = self.sim.t - self.creation_time
-        total_income = income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
         earning_rate = total_income / self.required_building_time
         return earning_rate
 
-    def earning_rate_buying(self, income_per_timestep=1):
+    def earning_rate_buying(self):
         """
         Calculate the earning rate of buying resources.
         """
@@ -395,10 +389,14 @@ class Agent:
         if cost > self.wealth:
             return 0
 
+        # If market doesn't have enough resources, return 0
+        if num_wood_to_buy > self.market.wood or num_stone_to_buy > self.market.stone:
+            return 0
+
         # Calculate and return the net earning rate
         age = self.sim.t - self.creation_time
         required_time = self.required_building_time + 1
-        gross_income = income_per_timestep * (self.guessed_lifetime - age - required_time)
+        gross_income = self.income_per_timestep * (self.guessed_lifetime - age - required_time)
         return (gross_income - cost) / required_time
 
     def earning_rate_selling(self):

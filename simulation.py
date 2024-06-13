@@ -10,7 +10,7 @@ import csv
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
-                 lifetime_mean=80, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time = 5):
+                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time = 5, save_file_path=None):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """
@@ -26,8 +26,10 @@ class Simulation:
         self.sold_at_timesteps = {}
         self.taxes_paid_at_timesteps = {}
         self.lifetime_mean = lifetime_mean
+        self.lifetime_std = lifetime_std
         self.resource_spawn_period = resource_spawn_period
         self.agent_spawn_period = agent_spawn_period
+        self.save_file_path = save_file_path
         self.writer = None
 
         # Initialize Dynamic market
@@ -73,8 +75,7 @@ class Simulation:
         else:
             wealth = 0  
             
-        agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, 
-                      creation_time=self.t, wealth = wealth)
+        agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
 
@@ -102,14 +103,22 @@ class Simulation:
         self.wood_order_book.agents_dict = self.get_agents_dict()
         self.stone_order_book.agents_dict = self.get_agents_dict()
         
-        # Update agents from order books after trades (wealth & resources)
-        self.update_agents_from_order_books()
+        # # Update agents from order books after trades (wealth & resources)
+        # self.update_agents_from_order_books()
+
+        # Update market prices
+        self.market.update_price()
         
     def run(self):
-        with open('agent_data.csv', mode='a', newline='') as file:
-            self.writer = csv.writer(file)
+        if self.save_file_path:
+            with open(self.save_file_path, mode='a', newline='') as file:
+                self.writer = csv.writer(file)
+                for t in range(self.n_timesteps):
+                    # print(f"\nTimestep {t+1}:")
+                    self.timestep()
+        else:
             for t in range(self.n_timesteps):
-                print(f"\nTimestep {t+1}:")
+                # print(f"\nTimestep {t+1}:")
                 self.timestep()
 
     def initialize_resources(self):
