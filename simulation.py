@@ -99,12 +99,14 @@ class Simulation:
     def timestep(self):
         self.t += 1
         agents = list(self.grid.agents.values())
-        for agent in agents:
-            agent.step()
         if self.t % self.resource_spawn_period == 0:
             self.spawn_resources()
         if self.t % self.tax_period == 0:
             self.tax_policy.apply_taxes()
+        for agent in agents:
+            agent.step()
+            agent.taxes_paid_at_timesteps.append(0)
+
         
         # Buggy so commented out
         # if self.t % self.agent_spawn_period == 0:
