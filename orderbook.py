@@ -39,12 +39,12 @@ class OrderBooks:
         
     def check_price(self):
         if self.bids:
-            best_bid = max(self.bids, key=lambda x: x['price'])
+            best_bid = max(self.bids, key=lambda x: x['price'])['price']
         else:
             best_bid = None
         
         if self.asks:
-            best_ask = min(self.asks, key=lambda x: x['price'])
+            best_ask = min(self.asks, key=lambda x: x['price'])['price']
         else:
             best_ask = None
         return best_bid, best_ask
@@ -55,6 +55,8 @@ class OrderBooks:
             best_ask = min(self.asks, key=lambda x: x['price'])
             
             if best_bid['price'] >= best_ask['price']:
+                print('BEST_BID, BEST_ASK', best_bid, best_ask)
+                print('AGENT_DICT HERE WEEWEWEO', self.agents_dict)
                 bid_agent = self.agents_dict[best_bid['agent_id']]
                 ask_agent = self.agents_dict[best_ask['agent_id']]
                 
@@ -71,7 +73,7 @@ class OrderBooks:
                 
                 self.bids.remove(best_bid)
                 self.asks.remove(best_ask)
-                
+                print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
                 self.transactions.append({'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
             else:
                 break
