@@ -61,12 +61,17 @@ class Simulation:
         """
         Note that on a grid cell, there can now only be 1 agent!
         """ 
-        position = self.get_random_position()
+        
+        mask_agent = self.grid.agent_matrix == 0
+        mask_house = self.grid.house_matrix == 0
 
-        attempts = 0
-        while not self.grid.if_no_agents_houses(position) and attempts < 1000:
-            position = self.get_random_position()
-            attempts += 1
+        common_zeros = np.where(mask_agent & mask_house)
+
+        if common_zeros[0].size > 0:
+            random_index = np.random.choice(len(common_zeros[0]))
+            position = (common_zeros[0][random_index], common_zeros[1][random_index])
+        else:
+            return
         
         # Sample wealth
         if self.wealth_distribution:
