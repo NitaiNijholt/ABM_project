@@ -11,7 +11,7 @@ import csv
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
-                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=100, agent_spawn_period=10, order_expiry_time = 5, save_file_path=None, tax_period=30):
+                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time = 5, save_file_path=None, tax_period=30):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """

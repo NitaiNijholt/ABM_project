@@ -50,7 +50,7 @@ class StaticTaxPolicy:
             total_tax += tax
             agent.wealth -= tax
             agent.taxes_paid_at_timesteps.append(tax)
-            # print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}.")
+            #print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}. resources w/s {agent.wood}/{agent.stone}")
 
         # Redistribution of tax revenue
         for agent_id, agent in self.grid.agents.items():

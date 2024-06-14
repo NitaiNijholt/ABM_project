@@ -8,8 +8,8 @@ class Market:
         self.wood_to_sell = 0
         self.stone_to_buy = 0
         self.stone_to_sell = 0
-        self.wood = 0
-        self.stone = 0
+        self.wood = 10000
+        self.stone = 10000
 
         self.wood_rate_history = []
         self.stone_rate_history = []

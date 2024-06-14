@@ -135,9 +135,7 @@ class Agent:
         """
 
         possible_moves = self.find_moves()
-        # print(f"Agent {self.agent_id} at position {self.position} tries to move. Possible moves: {possible_moves}")
         if len(possible_moves) == 0:
-            # print(f"Agent {self.agent_id} has no possible moves")#############################################################################
             return
 
         # Move to a random neighboring cell
@@ -179,7 +177,7 @@ class Agent:
         house = House(self.agent_id, self.position, income_per_timestep=self.income_per_timestep)
         self.houses.append(house)
         self.grid.houses[self.position] = house
-        # print(f"Agent {self.agent_id} completed building a house at {self.position}")#################################################################
+        print(f"Agent {self.agent_id} completed building a house at {self.position}")#################################################################
 
     def build(self):
         """
@@ -226,7 +224,9 @@ class Agent:
                                 'sell': self.earning_rate_selling(),
                                 'gather': self.earning_rate_gathering()}
             action = actions[np.argmax(list(self.earning_rates.values()))]
-            # print(f"Agent {self.agent_id} decides to {action.__name__} based on earning rates: {self.earning_rates}")
+            print(f"Agent {self.agent_id} decides to {action.__name__} based on earning rates: {self.earning_rates}")
+            # if action
+            # print(f"")
 
             # Update the current_action based on the action taken
             self.current_action = action.__name__
@@ -384,7 +384,7 @@ class Agent:
         age = self.sim.t - self.creation_time
         required_time = self.required_building_time + 1
         gross_income = self.income_per_timestep * (self.guessed_lifetime - age - required_time)
-        return (gross_income - cost) / required_time
+        return max((gross_income - cost) / required_time, 0)
 
     def earning_rate_selling(self):
         """
@@ -429,7 +429,18 @@ class Agent:
         """
         Calculate the earning rate of moving to a neighboring cell randomly.
         """
-        positions_to_check = self.grid.get_neighbors(self.position) # 4 Von Neumann neighborhood
+        if self.grid.house_cost[0] <= self.wood or self.grid.house_cost[1] <= self.stone and self.grid.house_matrix[self.position] != 0:
+            age = self.sim.t - self.creation_time
+            total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+            earning_rate = total_income / (self.required_building_time + 1)
+            return earning_rate
+        
+        positions = self.grid.get_neighbors(self.position) # 4 Von Neumann neighborhood
+        positions_to_check = set()
+        for close_position in positions:
+            for position in self.grid.get_neighbors(close_position):
+                positions_to_check.add(position)
+        
         earning_rate = 0
         for pos in positions_to_check:
             wood, stone = self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]
