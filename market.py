@@ -1,5 +1,5 @@
 class Market:
-    def __init__(self, initial_wood_rate, initial_stone_rate, sensitivity=0.01):
+    def __init__(self, initial_wood_rate, initial_stone_rate, sensitivity=0.1):
         self.wood_rate = initial_wood_rate
         self.stone_rate = initial_stone_rate
         self.sensitivity = sensitivity
@@ -8,9 +8,15 @@ class Market:
         self.wood_to_sell = 0
         self.stone_to_buy = 0
         self.stone_to_sell = 0
-
         self.wood = 0
         self.stone = 0
+
+        self.wood_rate_history = []
+        self.stone_rate_history = []
+        self.wood_buy_history = []
+        self.wood_sell_history = []
+        self.stone_buy_history = []
+        self.stone_sell_history = []
 
     def add_seller(self, seller, wood_to_sell, stone_to_sell):
         """
@@ -39,7 +45,7 @@ class Market:
         wood_to_buy (int): The amount of wood the agent wants to buy
         stone_to_buy (int): The amount of stone the agent wants to buy
         """
-        # Check if the market has enough resources
+        # If the market doesn't have enough resources, return
         if self.wood < wood_to_buy or self.stone < stone_to_buy:
             print("Market does not have enough resources.")
             return
@@ -59,12 +65,22 @@ class Market:
         """
         This function should be called at the end of simulation.timestep to update the price of resources.
         """
-        self.wood_rate *= 1 + self.sensitivity * (self.wood_to_buy - self.wood_to_sell)
-        self.stone_rate *= 1 + self.sensitivity * (self.stone_to_buy - self.stone_to_sell)
+        # Record the history
+        self.stone_rate_history.append(self.stone_rate)
+        self.wood_rate_history.append(self.wood_rate)
+        self.wood_buy_history.append(self.wood_to_buy)
+        self.wood_sell_history.append(self.wood_to_sell)
+        self.stone_buy_history.append(self.stone_to_buy)
+        self.stone_sell_history.append(self.stone_to_sell)
+
+        self.wood_rate *= 1 + self.sensitivity * (self.wood_to_buy - self.wood_to_sell) / max(self.wood, 1)
+        self.stone_rate *= 1 + self.sensitivity * (self.stone_to_buy - self.stone_to_sell) / max(self.stone + self.stone_to_sell, 1)
 
         # Reset the counters
         self.wood_to_buy = 0
         self.wood_to_sell = 0
+        self.stone_to_buy = 0
+        self.stone_to_sell = 0
 
         # # Show the market status
         # print(f"\nMarket:")

@@ -225,8 +225,8 @@ class Agent:
                                 'buy': self.earning_rate_buying(),
                                 'sell': self.earning_rate_selling(),
                                 'gather': self.earning_rate_gathering()}
-            # print(f"ER of [m, bd, by, sl, gr]: {earning_rates}")
-            action = actions[np.argmax(self.earning_rates.values())]
+            action = actions[np.argmax(list(self.earning_rates.values()))]
+            # print(f"Agent {self.agent_id} decides to {action.__name__} based on earning rates: {self.earning_rates}")
 
             # Update the current_action based on the action taken
             self.current_action = action.__name__

@@ -63,6 +63,7 @@ class Simulation:
         """ 
         position = self.get_random_position()
 
+        # TODO: If there is no empty position, then the agent should not be created
         # Safe, because of assert statement above
         while not self.grid.if_no_agents_houses(position):
             position = self.get_random_position()
@@ -118,7 +119,7 @@ class Simulation:
                     self.timestep()
         else:
             for t in range(self.n_timesteps):
-                # print(f"\nTimestep {t+1}:")
+                print(f"\nTimestep {t+1}:")
                 self.timestep()
 
     def initialize_resources(self):

@@ -1,11 +1,13 @@
 from grid import Grid
 from simulation import Simulation
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Params
-height = 10
-width = 10
-num_agents = 4
-n_timesteps = 10
+height = 20
+width = 20
+num_agents = 6
+n_timesteps = 1000
 num_resources = 50
 house_cost = (2, 2)  # Define the cost of building a house
 lifetime_mean = 50
@@ -28,8 +30,8 @@ print("Wood matrix:")
 print(sim.grid.resource_matrix_wood)
 print("Stone matrix:")
 print(sim.grid.resource_matrix_stone)
-print("Agent matrix:")
-print(sim.grid.agent_matrix)
+# print("Agent matrix:")
+# print(sim.grid.agent_matrix)
 
 # Print the market
 print(f"\nMarket:")
@@ -40,7 +42,32 @@ print(f"Stone to buy: {sim.market.stone_to_buy}")
 print(f"Stone to sell: {sim.market.stone_to_sell}")
 print(f"Updated stone rate: {sim.market.stone_rate}")
 
-# Print the earning rates
-for id, agent in grid.agents.items():
-    print(f"\nAgent {id}:")
-    print(agent.earning_rates)
+plt.figure()
+plt.plot(sim.market.wood_rate_history, label='Wood rate')
+plt.plot(sim.market.stone_rate_history, label='Stone rate')
+plt.legend()
+plt.xlabel('Timestep')
+plt.ylabel('Rate')
+plt.title('Resource rates over time')
+plt.show()
+
+plt.figure()
+plt.plot(np.cumsum(sim.market.wood_buy_history), label='Wood buy')
+plt.plot(np.cumsum(sim.market.wood_sell_history), label='Wood sell')
+plt.legend()
+plt.xlabel('Timestep')
+plt.ylabel('Amount')
+plt.title('Resource transactions over time')
+plt.show()
+
+plt.figure()
+plt.plot(np.cumsum(sim.market.stone_buy_history), label='Stone buy')
+plt.plot(np.cumsum(sim.market.stone_sell_history), label='Stone sell')
+plt.legend()
+plt.xlabel('Timestep')
+plt.ylabel('Amount')
+plt.title('Resource transactions over time')
+plt.show()
+
+# TODO: Why are the rates always polarized?
+# TODO: Why the buys and sells are balanced for stone but not for wood?
