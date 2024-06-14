@@ -174,11 +174,12 @@ class Agent:
         """
         Agent completes the construction of a house
         """ 
-
         self.grid.house_matrix[self.position] = 1
+        for pos in self.grid.get_neighbors(self.position):
+            self.grid.house_incomes[pos] += self.income_per_timestep
         house = House(self.agent_id, self.position, income_per_timestep=self.income_per_timestep)
         self.houses.append(house)
-        self.grid.houses[self.position] = house
+        # self.grid.houses[self.position] = house
         # print(f"Agent {self.agent_id} completed building a house at {self.position}")#################################################################
 
     def build(self):
@@ -263,6 +264,17 @@ class Agent:
         self.sim.make_agent(max(self.grid.agents.keys()) + 1)
         del self.grid.agents[self.agent_id]
         self.grid.agent_matrix[self.position] = 0
+        # Remove houses and modify the house incomes matrix
+        for house in self.houses:
+            # Remove house from grid
+            self.grid.house_matrix[house.position] = 0
+
+            # Update house incomes around the house
+            for pos in self.grid.get_neighbors(house.position):
+                self.grid.house_incomes[pos] -= house.income_per_timestep
+
+            # Recalculate the income of the current position
+
         # print(f"Agent {self.agent_id} died at the age of {self.actual_lifetime}")#################################################
 
         
@@ -349,8 +361,8 @@ class Agent:
         """
         Calculate the earning rate of building a house.
         """
-        # If agent does not have enough resources, return 0
-        if self.grid.house_cost[0] > self.wood or self.grid.house_cost[1] > self.stone:
+        # If agent does not have enough resources or the cell is not empty, return 0
+        if self.grid.house_cost[0] > self.wood or self.grid.house_cost[1] > self.stone or self.grid.house_matrix[self.position] != 1:
             return 0
 
         age = self.sim.t - self.creation_time

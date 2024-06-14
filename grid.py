@@ -22,7 +22,8 @@ class Grid:
         self.resource_matrix_wood = np.zeros((self.width, self.height), dtype=int)
         self.resource_matrix_stone = np.zeros((self.width, self.height), dtype=int)
         self.house_matrix = np.zeros((self.width, self.height), dtype=int)
-        self.houses = {}
+        self.house_incomes = np.zeros((self.width, self.height), dtype=int)
+        # self.houses = {}
 
     def get_neighbors(self, position):
         """
