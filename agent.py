@@ -243,7 +243,6 @@ class Agent:
         self.houses_over_time.append(len(self.houses))
         self.bought_at_timesteps.append(0)
         self.sold_at_timesteps.append(0)
-        self.taxes_paid_at_timesteps.append(0)
 
         # Agent dies when he reaches his life expectancy
         if self.sim.t >= self.creation_time + self.actual_lifetime:
@@ -263,6 +262,9 @@ class Agent:
         self.sim.make_agent(max(self.grid.agents.keys()) + 1)
         del self.grid.agents[self.agent_id]
         self.grid.agent_matrix[self.position] = 0
+        for house in self.houses:
+            self.grid.house_matrix[house.position] -=1
+
         # print(f"Agent {self.agent_id} died at the age of {self.actual_lifetime}")#################################################
 
         
@@ -350,7 +352,7 @@ class Agent:
         Calculate the earning rate of building a house.
         """
         # If agent does not have enough resources, return 0
-        if self.grid.house_cost[0] > self.wood or self.grid.house_cost[1] > self.stone:
+        if self.grid.house_cost[0] > self.wood or self.grid.house_cost[1] > self.stone or self.grid.house_matrix[self.position] != 0:
             return 0
 
         age = self.sim.t - self.creation_time

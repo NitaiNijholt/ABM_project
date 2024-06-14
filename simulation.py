@@ -2,15 +2,16 @@ import numpy as np
 from agent import Agent
 from grid import Grid
 from market import Market
-from orderbook import OrderBooks
+# from orderbook import OrderBooks
 import matplotlib.pyplot as plt
+from static_tax_policy import StaticTaxPolicy
 import json
 import csv
 
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
-                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time = 5, save_file_path=None):
+                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=100, agent_spawn_period=10, order_expiry_time = 5, save_file_path=None, tax_period=30):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """
@@ -30,14 +31,16 @@ class Simulation:
         self.resource_spawn_period = resource_spawn_period
         self.agent_spawn_period = agent_spawn_period
         self.save_file_path = save_file_path
+        self.tax_period = tax_period
         self.writer = None
 
         # Initialize Dynamic market
-        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
-        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time)
+        # self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
+        # self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time)
         
         # Initialize Static price market
         self.market = Market(wood_rate, stone_rate)
+        self.tax_policy = None
 
         assert num_agents <= self.grid.width * self.grid.height, "Number of agents cannot be larger than gridpoints"
         
@@ -100,14 +103,16 @@ class Simulation:
             agent.step()
         if self.t % self.resource_spawn_period == 0:
             self.spawn_resources()
+        if self.t % self.tax_period == 0:
+            self.tax_policy.apply_taxes()
         
         # Buggy so commented out
         # if self.t % self.agent_spawn_period == 0:
         #     self.spawn_agents()
         
         # Update order books with current agents' state
-        self.wood_order_book.agents_dict = self.get_agents_dict()
-        self.stone_order_book.agents_dict = self.get_agents_dict()
+        # self.wood_order_book.agents_dict = self.get_agents_dict()
+        # self.stone_order_book.agents_dict = self.get_agents_dict()
         
         # # Update agents from order books after trades (wealth & resources)
         # self.update_agents_from_order_books()
@@ -116,6 +121,7 @@ class Simulation:
         self.market.update_price()
         
     def run(self):
+        self.tax_policy = StaticTaxPolicy(self.grid)
         if self.save_file_path:
             with open(self.save_file_path, mode='a', newline='') as file:
                 self.writer = csv.writer(file)
@@ -156,15 +162,17 @@ class Simulation:
         # print(f"Number of wood resources: {num_wood}")
         # print(f"Number of stone resources: {num_stone}")###################################################################
 
-        for _ in range(self.num_resources - num_wood):
-            wood_position = self.get_random_position()
-            if self.grid.if_no_agents_houses(wood_position):
-                self.grid.resource_matrix_wood[wood_position] += 1
 
         for _ in range(self.num_resources - num_stone):
             stone_position = self.get_random_position()
             if self.grid.if_no_agents_houses(stone_position):
                 self.grid.resource_matrix_stone[stone_position] += 1
+
+        for _ in range(self.num_resources - num_wood):
+            wood_position = self.get_random_position()
+            if self.grid.if_no_agents_houses(wood_position):
+                self.grid.resource_matrix_wood[wood_position] += 1
+
 
     def spawn_agents(self):
         """
@@ -180,14 +188,14 @@ class Simulation:
         return {agent_id: {'wealth': agent.wealth, 'wood': agent.wood, 'stone': agent.stone} 
                 for agent_id, agent in self.grid.agents.items()}
 
-    def update_agents_from_order_books(self):
-        for agent_id, agent in self.grid.agents.items():
-            if agent_id in self.wood_order_book.agents_dict:
-                agent.wealth = self.wood_order_book.agents_dict[agent_id]['wealth']
-                agent.wood = self.wood_order_book.agents_dict[agent_id]['wood']
-            if agent_id in self.stone_order_book.agents_dict:
-                agent.wealth = self.stone_order_book.agents_dict[agent_id]['wealth']
-                agent.stone = self.stone_order_book.agents_dict[agent_id]['stone']
+    # def update_agents_from_order_books(self):
+    #     for agent_id, agent in self.grid.agents.items():
+    #         if agent_id in self.wood_order_book.agents_dict:
+    #             agent.wealth = self.wood_order_book.agents_dict[agent_id]['wealth']
+    #             agent.wood = self.wood_order_book.agents_dict[agent_id]['wood']
+    #         if agent_id in self.stone_order_book.agents_dict:
+    #             agent.wealth = self.stone_order_book.agents_dict[agent_id]['wealth']
+    #             agent.stone = self.stone_order_book.agents_dict[agent_id]['stone']
 
     def plot_wealth_over_time(self):
         """

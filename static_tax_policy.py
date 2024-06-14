@@ -1,35 +1,38 @@
-from grid import Grid
-from simulation import Simulation
+# from grid import Grid
+# from simulation import Simulation
 import numpy as np
+
 
 class StaticTaxPolicy:
 
     def __init__(self, grid):
         self.grid = grid
-        self.house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
-        self.tax_brackets = self.calculate_tax_brackets()
-        print("House incomes for all agents:", self.house_incomes)
+        self.house_incomes = []
+        self.tax_brackets = []
+        # print("House incomes for all agents:", self.house_incomes)
 
     def calculate_house_income(self, agent):
         total_income = np.sum([house.income_per_timestep for house in agent.houses])
         return total_income
 
     def calculate_tax_brackets(self):
+        self.house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
         # Determine income brackets based on quantiles
         quartiles = np.percentile(self.house_incomes, [25, 50, 75, 100])
-        print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
+        # print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
         tax_rates = [0.1, 0.2, 0.3, 0.4]
 
         # Create a list of (upper_bound, tax_rate) tuples
         tax_brackets = [(quartiles[i], tax_rates[i]) for i in range(len(quartiles))]
         return tax_brackets
 
-    def calculate_tax(self, agent_idx):
+    def calculate_tax(self, agent_id):
         # Calculate tax based on cumulative brackets for progressive taxation
-        income = self.house_incomes[agent_idx]
+        tax_brackets = self.calculate_tax_brackets()
+        income = self.house_incomes[agent_id]
         tax = 0
         previous_bound = 0
-        for i, (upper_bound, tax_rate) in enumerate(self.tax_brackets):
+        for i, (upper_bound, tax_rate) in enumerate(tax_brackets):
             if income > previous_bound:
                 taxable_income = min(income - previous_bound, upper_bound - previous_bound)
                 tax += taxable_income * tax_rate
@@ -42,16 +45,17 @@ class StaticTaxPolicy:
     def apply_taxes(self):
         # Apply tax to each agent and adjust their wealth
         total_tax = 0
-        for agent_idx, agent in enumerate(self.grid.agents.values()):
-            tax = self.calculate_tax(agent_idx)
+        for agent_id, agent in enumerate(self.grid.agents.values()):
+            tax = self.calculate_tax(agent_id)
             total_tax += tax
             agent.wealth -= tax
-            print(f"Agent {agent_idx+1} pays tax {tax} with remaining wealth {agent.wealth}.")
+            agent.taxes_paid_at_timesteps.append(tax)
+            # print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}.")
 
         # Redistribution of tax revenue
         for agent_id, agent in self.grid.agents.items():
             agent.wealth += total_tax / len(self.grid.agents)
-            print(f"Agent {agent.agent_id} receives {total_tax / len(self.grid.agents)} from tax revenue, new wealth: {agent.wealth}.")
+            # print(f"Agent {agent.agent_id} receives {total_tax / len(self.grid.agents)} from tax revenue, new wealth: {agent.wealth}.")
 
     def gini_coefficient(self):
         # Calculate the Gini coefficient
@@ -83,22 +87,22 @@ class StaticTaxPolicy:
         return social_welfare
 
 
-# Initialize grid and agents
-grid = Grid(4, 4, (2, 2))
-sim = Simulation(0, grid)
+# # Initialize grid and agents
+# grid = Grid(4, 4, (2, 2))
+# sim = Simulation(0, grid)
 
-# Create agents and build houses
-for i in range(1, 9):
-    sim.make_agent(i)
-    for j in range(i):
-        grid.agents[i].build_house()
+# # Create agents and build houses
+# for i in range(1, 9):
+#     sim.make_agent(i)
+#     for j in range(i):
+#         grid.agents[i].build_house()
 
-# Initialize static tax policy and apply taxes
-static_tax_policy = StaticTaxPolicy(grid)
-static_tax_policy.apply_taxes()
-static_tax_policy.calculate_equality()
-static_tax_policy.calculate_productivity()
-static_tax_policy.calculate_social_welfare()
+# # Initialize static tax policy and apply taxes
+# static_tax_policy = StaticTaxPolicy(grid)
+# static_tax_policy.apply_taxes()
+# static_tax_policy.calculate_equality()
+# static_tax_policy.calculate_productivity()
+# static_tax_policy.calculate_social_welfare()
 
 
 
