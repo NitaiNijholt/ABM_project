@@ -3,21 +3,25 @@ from simulation import Simulation
 import numpy as np
 
 class DynamicTaxPolicy:
-    def __init__(self, grid, std_dev_threshold):
+    def __init__(self, grid, std_dev_threshold, discount_rate):
         self.grid = grid
         # self.agents = list(grid.agents.values())
         self.std_dev_threshold = std_dev_threshold
-        self.house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
+        self.discount_rate = discount_rate
+        self.pretax_house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
+        self.posttax_house_incomes = self.pretax_house_incomes.copy()
         self.base_tax_rates = [0.1, 0.2, 0.3, 0.4]  # Base tax rates
         self.tax_brackets = []
-        print("House incomes for all agents:", self.house_incomes)
+        self.previous_welfare = 0
+        self.total_discounted_welfare_change = 0
+        print("House pretax incomes for all agents:", self.pretax_house_incomes)
     
     def calculate_house_income(self, agent):
         # Calculate the total income from the houses owned by the agent
         return sum([house.income_per_timestep for house in agent.houses])
 
     def update_tax_brackets(self):
-        income_values = self.house_incomes
+        income_values = self.pretax_house_incomes   # Use pretax incomes for setting tax brackets
         current_std_dev = np.std(income_values)
 
         # Initialize the adjustment factors to zero (no change)
@@ -37,7 +41,8 @@ class DynamicTaxPolicy:
         self.tax_brackets = [(quartiles[i], adjusted_tax_rates[i]) for i in range(len(quartiles))]
 
     def calculate_tax(self, agent):
-        income = self.calculate_house_income(agent)
+        income = self.pretax_house_incomes[agent.agent_id - 1]
+        print(f"Agent {agent.agent_id} has pretax income {income}.")
         tax = 0
         previous_bound = 0
         for upper_bound, tax_rate in self.tax_brackets:
@@ -53,9 +58,11 @@ class DynamicTaxPolicy:
     def collect_and_distribute_taxes(self):
         # Collect taxes
         total_tax_collected = 0
+        taxes = []
         for agent_idx, agent in enumerate(self.grid.agents.values()):
             tax = self.calculate_tax(agent)
             agent.wealth -= tax
+            taxes.append(tax)
             total_tax_collected += tax
             print(f"Agent {agent.agent_id} pays tax {tax} with remaining wealth {agent.wealth}.")
 
@@ -64,12 +71,16 @@ class DynamicTaxPolicy:
         redistribution_amount = total_tax_collected / len(self.grid.agents) if self.grid.agents else 0
         for agent_idx, agent in enumerate(self.grid.agents.values()):
             agent.wealth += redistribution_amount
-            print(f"Agent {agent.agent_id} receives {total_tax_collected / len(self.grid.agents)} from tax revenue, new wealth: {agent.wealth}.")
+            print(f"Agent {agent.agent_id} receives {redistribution_amount} from tax revenue, new wealth: {agent.wealth}.")
 
+        # Update posttax incomes after taxes are collected and distributed
+        for idx, agent in enumerate(self.grid.agents.values()):
+            self.posttax_house_incomes[idx] = self.pretax_house_incomes[idx] - taxes[idx] + redistribution_amount
+            print(f"Agent {agent.agent_id} has posttax income {self.posttax_house_incomes[idx]}.")
 
-    def gini_coefficient(self):
+    def gini_coefficient(self, use_posttax=True):
         # Calculate the Gini coefficient
-        incomes = np.array(self.house_incomes)
+        incomes = np.array(self.posttax_house_incomes if use_posttax else self.pretax_house_incomes)
         n = len(incomes)
         income_matrix = np.abs(np.subtract.outer(incomes, incomes))
         gini = income_matrix.sum() / (2 * n * np.sum(incomes))
@@ -84,9 +95,9 @@ class DynamicTaxPolicy:
         print(f"Calculated Equality Measure: {eq_value}")
         return eq_value
 
-    def calculate_productivity(self):
+    def calculate_productivity(self, use_posttax=True):
         # Sum of all house incomes which represents the total productivity
-        total_productivity = np.sum(self.house_incomes)
+        total_productivity = np.sum(self.posttax_house_incomes if use_posttax else self.pretax_house_incomes)
         print(f"Total Productivity: {total_productivity}")
         return total_productivity
 
@@ -97,19 +108,25 @@ class DynamicTaxPolicy:
         return social_welfare
 
 
-
-
-
-
-
-    def simulate_time_step(self):
+    def simulate_time_step(self, time_step):
         self.update_tax_brackets()
         self.collect_and_distribute_taxes()
-        self.gini_coefficient()
-        self.calculate_equality()
-        self.calculate_productivity()
-        self.calculate_social_welfare()
 
+        self.pretax_house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
+        # print(f"Pretax incomes at step {time_step}: {self.pretax_house_incomes}") 
+
+        self.update_tax_brackets()
+        self.collect_and_distribute_taxes()
+
+        current_welfare = self.calculate_social_welfare()
+        welfare_change = current_welfare - self.previous_welfare
+        discounted_change = (self.discount_rate ** time_step) * welfare_change
+        self.total_discounted_welfare_change += discounted_change
+        self.previous_welfare = current_welfare
+
+        print(f"Welfare change at step {time_step}: {welfare_change}")
+        print(f"Discounted welfare change at step {time_step}: {discounted_change}")
+        print(f"Total discounted welfare change up to step {time_step}: {self.total_discounted_welfare_change}")
 
 
 # Initialize grid and agents
@@ -124,12 +141,20 @@ for i in range(1, 9):
         grid.agents[i].build_house() 
 
 # Initialize dynamic tax policy and apply taxes
-dynamic_tax_policy = DynamicTaxPolicy(grid, target_std_dev_threshold)
+dynamic_tax_policy = DynamicTaxPolicy(grid, target_std_dev_threshold, discount_rate=0.95)
 
 # Simulate 10 time steps and update tax policy each time
-for _ in range(10): 
-    dynamic_tax_policy.simulate_time_step()
-    print(f"Simulation step {_+1} completed.")
+for t in range(10): 
+    # Update each house's income_per_timestep before simulating the tax policy
+    for agent in grid.agents.values():
+        for house in agent.houses:
+            # Assume income can randomly fluctuate by up to 10% of its current value
+            fluctuation = house.income_per_timestep * np.random.uniform(-0.1, 0.1)
+            house.income_per_timestep += fluctuation
+
+    # Run the simulation step with the updated incomes        
+    dynamic_tax_policy.simulate_time_step(t)
+    print(f"Simulation step {t+1} completed.")
 
 
 # class DynamicTaxPolicy:
