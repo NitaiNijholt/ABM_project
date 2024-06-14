@@ -1,7 +1,7 @@
 import numpy as np
 
 class Grid:
-    def __init__(self, width, height, house_cost=(2, 2)):
+    def __init__(self, width, height, house_cost=(2, 2), income_per_timestep=1):
         """
         Initialize grid with given width and height.
 
@@ -22,7 +22,7 @@ class Grid:
         self.resource_matrix_wood = np.zeros((self.width, self.height), dtype=int)
         self.resource_matrix_stone = np.zeros((self.width, self.height), dtype=int)
         self.house_matrix = np.zeros((self.width, self.height), dtype=int)
-        self.house_incomes = np.zeros((self.width, self.height), dtype=int)
+        self.house_incomes = np.ones((self.width, self.height), dtype=int) * income_per_timestep
         # self.houses = {}
 
     def get_neighbors(self, position):

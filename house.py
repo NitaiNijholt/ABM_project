@@ -1,7 +1,6 @@
 import numpy as np
 
 class House:
-    def __init__(self, owner, position, income_per_timestep):
-        self.owner = owner
+    def __init__(self, grid, position):
+        self.grid = grid
         self.position = position
-        self.income_per_timestep = income_per_timestep
