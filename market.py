@@ -46,13 +46,13 @@ class Market:
         stone_to_buy (int): The amount of stone the agent wants to buy
         """
         # If the market doesn't have enough resources, return
-        if self.wood < wood_to_buy or self.stone < stone_to_buy:
-            print("Market does not have enough resources.")
-            return
-
         # Record
         self.wood_to_buy += wood_to_buy
         self.stone_to_buy += stone_to_buy
+
+        if self.wood < wood_to_buy or self.stone < stone_to_buy:
+            print("Market does not have enough resources.")
+            return
 
         # Process the order
         buyer.wealth -= wood_to_buy * self.wood_rate + stone_to_buy * self.stone_rate

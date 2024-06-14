@@ -12,7 +12,7 @@ class StaticTaxPolicy:
         # print("House incomes for all agents:", self.house_incomes)
 
     def calculate_house_income(self, agent):
-        total_income = np.sum([house.income_per_timestep for house in agent.houses])
+        total_income = np.sum([self.grid.house_incomes[house.position] for house in agent.houses])
         return total_income
 
     def calculate_tax_brackets(self):

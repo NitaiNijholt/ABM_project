@@ -1,7 +1,8 @@
 import numpy as np
+from scipy.signal import convolve2d
 
 class Grid:
-    def __init__(self, width, height, house_cost=(2, 2)):
+    def __init__(self, width, height, house_cost=(2, 2), income_per_timestep=1):
         """
         Initialize grid with given width and height.
 
@@ -22,7 +23,8 @@ class Grid:
         self.resource_matrix_wood = np.zeros((self.width, self.height), dtype=int)
         self.resource_matrix_stone = np.zeros((self.width, self.height), dtype=int)
         self.house_matrix = np.zeros((self.width, self.height), dtype=int)
-        self.houses = {}
+        self.house_incomes = np.ones((self.width, self.height), dtype=int) * income_per_timestep
+        # self.houses = {}
 
     def get_neighbors(self, position):
         """
@@ -41,3 +43,13 @@ class Grid:
         Check if a position is empty for agents and houses.
         """
         return self.agent_matrix[position] + self.house_matrix[position] == 0
+
+    def update_house_incomes(self):
+        """
+        Update the income of a house at a given position.
+        """
+        kernel = np.array([
+            [0, 1, 0],
+            [1, 0, 1],
+            [0, 1, 0]])
+        self.house_incomes = convolve2d(self.house_matrix, kernel, mode='same', boundary='wrap') + 1
