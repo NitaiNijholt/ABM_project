@@ -63,10 +63,10 @@ class Simulation:
         """ 
         position = self.get_random_position()
 
-        # TODO: If there is no empty position, then the agent should not be created
-        # Safe, because of assert statement above
-        while not self.grid.if_no_agents_houses(position):
+        attempts = 0
+        while not self.grid.if_no_agents_houses(position) and attempts < 1000:
             position = self.get_random_position()
+            attempts += 1
         
         # Sample wealth
         if self.wealth_distribution:
