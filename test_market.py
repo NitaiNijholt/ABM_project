@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 # Params
 height = 20
 width = 20
-num_agents = 6
-n_timesteps = 1000
-num_resources = 50
+num_agents = 1
+n_timesteps = 100
+num_resources = 100
 house_cost = (2, 2)  # Define the cost of building a house
-lifetime_mean = 50
-lifetime_std = 5
+lifetime_mean = 80
+lifetime_std = 0.001
 wood_rate = 0.5  # Define the initial rate of wood
 stone_rate = 0.5  # Define the initial rate of stone
 
@@ -51,23 +51,23 @@ plt.ylabel('Rate')
 plt.title('Resource rates over time')
 plt.show()
 
-plt.figure()
-plt.plot(np.cumsum(sim.market.wood_buy_history), label='Wood buy')
-plt.plot(np.cumsum(sim.market.wood_sell_history), label='Wood sell')
-plt.legend()
-plt.xlabel('Timestep')
-plt.ylabel('Amount')
-plt.title('Resource transactions over time')
-plt.show()
+# plt.figure()
+# plt.plot(np.cumsum(sim.market.wood_buy_history), label='Wood buy')
+# plt.plot(np.cumsum(sim.market.wood_sell_history), label='Wood sell')
+# plt.legend()
+# plt.xlabel('Timestep')
+# plt.ylabel('Amount')
+# plt.title('Resource transactions over time')
+# plt.show()
 
-plt.figure()
-plt.plot(np.cumsum(sim.market.stone_buy_history), label='Stone buy')
-plt.plot(np.cumsum(sim.market.stone_sell_history), label='Stone sell')
-plt.legend()
-plt.xlabel('Timestep')
-plt.ylabel('Amount')
-plt.title('Resource transactions over time')
-plt.show()
+# plt.figure()
+# plt.plot(np.cumsum(sim.market.stone_buy_history), label='Stone buy')
+# plt.plot(np.cumsum(sim.market.stone_sell_history), label='Stone sell')
+# plt.legend()
+# plt.xlabel('Timestep')
+# plt.ylabel('Amount')
+# plt.title('Resource transactions over time')
+# plt.show()
 
 # TODO: Why are the rates always polarized?
 # TODO: Why the buys and sells are balanced for stone but not for wood?
