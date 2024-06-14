@@ -73,7 +73,7 @@ class Market:
         self.stone_buy_history.append(self.stone_to_buy)
         self.stone_sell_history.append(self.stone_to_sell)
 
-        self.wood_rate *= 1 + self.sensitivity * (self.wood_to_buy - self.wood_to_sell) / max(self.wood, 1)
+        self.wood_rate *= 1 + self.sensitivity * (self.wood_to_buy - self.wood_to_sell) / max(self.wood + self.wood_to_sell, 1)
         self.stone_rate *= 1 + self.sensitivity * (self.stone_to_buy - self.stone_to_sell) / max(self.stone + self.stone_to_sell, 1)
 
         # Reset the counters

@@ -295,22 +295,7 @@ class Agent:
         
 #         self.objective = 'Nothing'
 
-    # Random trading strategy for testing
-    def trade(self):
-        """
-        Agent decides to trade resources in the market.
-        """
-        order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
 
-        if self.wood > 2:
-            self.place_order(order_books, 'wood', 'sell', price=90, quantity=1)
-        elif self.wealth > 100:
-            self.place_order(order_books, 'wood', 'buy', price=100, quantity=1)
-
-        if self.stone > 2:
-            self.place_order(order_books, 'stone', 'sell', price=100, quantity=1)
-        elif self.wealth > 150:
-            self.place_order(order_books, 'stone', 'buy', price=110, quantity=1)
 
     def buy(self):
         """
@@ -431,7 +416,7 @@ class Agent:
         """
         Calculate the earning rate of gathering resources in the current position.
         """
-        if self.grid.resource_matrix_wood[self.position] == 0:
+        if self.grid.resource_matrix_wood[self.position] == 0 and self.grid.resource_matrix_stone[self.position] == 0:
             return 0
 
         # Simply use the price of the resources to estimate the earning rate
