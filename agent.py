@@ -177,9 +177,9 @@ class Agent:
         # Add the house to the grid
         self.grid.house_matrix[self.position] = 1
 
-        # Update the house incomes around the house
-        for pos in self.grid.get_neighbors(self.position):
-            self.grid.house_incomes[pos] += self.income_per_timestep
+        # # Update the house incomes around the house
+        # for pos in self.grid.get_neighbors(self.position):
+        #     self.grid.house_incomes[pos] += self.income_per_timestep
 
         # Create a house object and add it to the agent's houses
         house = House(self.grid, self.position)
@@ -275,12 +275,11 @@ class Agent:
         
         # Remove houses and modify the house incomes matrix
         for house in self.houses:
-            # # Remove house from grid
-            # self.grid.house_matrix[house.position] = 0
+            self.grid.house_matrix[house.position] = 0
 
-            # Update house incomes around the house
-            for pos in self.grid.get_neighbors(house.position):
-                self.grid.house_incomes[pos] -= self.income_per_timestep
+            # # Update house incomes around the house
+            # for pos in self.grid.get_neighbors(house.position):
+            #     self.grid.house_incomes[pos] -= self.income_per_timestep
 
         # print(f"Agent {self.agent_id} died at the age of {self.actual_lifetime}")#################################################
 
@@ -401,7 +400,7 @@ class Agent:
         age = self.sim.t - self.creation_time
         required_time = self.required_building_time + 1
         gross_income = self.grid.house_incomes[self.position] * (self.guessed_lifetime - age - required_time)
-        print(f"gross_income: {gross_income}, cost: {cost}")
+        # print(f"gross_income: {gross_income}, cost: {cost}")
         return (gross_income - cost) / required_time
 
     def earning_rate_selling(self):

@@ -11,7 +11,7 @@ import csv
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
-                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=100, agent_spawn_period=10, order_expiry_time = 5, save_file_path=None, tax_period=30):
+                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time = 5, save_file_path=None, tax_period=30, show_time=False, income_per_timestep=1):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """
@@ -33,6 +33,8 @@ class Simulation:
         self.save_file_path = save_file_path
         self.tax_period = tax_period
         self.writer = None
+        self.show_time = show_time
+        self.income_per_timestep = income_per_timestep
 
         # Initialize Dynamic market
         # self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
@@ -84,7 +86,7 @@ class Simulation:
         else:
             wealth = 0  
             
-        agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth)
+        agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
 
@@ -103,6 +105,7 @@ class Simulation:
             self.spawn_resources()
         if self.t % self.tax_period == 0:
             self.tax_policy.apply_taxes()
+        self.grid.update_house_incomes()
         for agent in agents:
             agent.step()
             agent.taxes_paid_at_timesteps.append(0)
@@ -128,11 +131,13 @@ class Simulation:
             with open(self.save_file_path, mode='a', newline='') as file:
                 self.writer = csv.writer(file)
                 for t in range(self.n_timesteps):
-                    # print(f"\nTimestep {t+1}:")
+                    if self.show_time:
+                        print(f"\nTimestep {t+1}:")
                     self.timestep()
         else:
             for t in range(self.n_timesteps):
-                print(f"\nTimestep {t+1}:")
+                if self.show_time:
+                    print(f"\nTimestep {t+1}:")
                 self.timestep()
 
     def initialize_resources(self):

@@ -6,14 +6,15 @@ import matplotlib.pyplot as plt
 # Params
 height = 20
 width = 20
-num_agents = 20
-n_timesteps = 100
-num_resources = 100
+num_agents = 100
+n_timesteps = 500
+num_resources = 500
 house_cost = (2, 2)  # Define the cost of building a house
 lifetime_mean = 80
-lifetime_std = 0.001
-wood_rate = 0.5  # Define the initial rate of wood
-stone_rate = 0.5  # Define the initial rate of stone
+lifetime_std = 10
+wood_rate = 2  # Define the initial rate of wood
+stone_rate = 2  # Define the initial rate of stone
+income_per_timestep = 1
 
 # Initialize grid
 grid = Grid(width, height, house_cost)
