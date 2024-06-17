@@ -155,20 +155,8 @@ class Simulation:
         Initialize resources on the grid. This method places resources randomly on the grid.
         """
         for _ in range(self.num_resources):
-            wood_position = self.get_random_empty_position()
-            self.grid.resource_matrix_wood[wood_position] += 1
-
-            stone_position = self.get_random_empty_position()
-            self.grid.resource_matrix_stone[stone_position] += 1
-
-    def get_random_empty_position(self):
-        """
-        Get a random position on the grid that is not occupied by an agent or a house.
-        """
-        position = self.get_random_position()
-        while not self.grid.if_no_agents_houses(position):
-            position = self.get_random_position()
-        return position
+            self.grid.resource_matrix_wood[self.get_random_position()] += 1
+            self.grid.resource_matrix_stone[self.get_random_position()] += 1
 
     def spawn_resources(self):
         """
@@ -181,12 +169,12 @@ class Simulation:
 
         for _ in range(self.num_resources - num_stone):
             stone_position = self.get_random_position()
-            if self.grid.if_no_agents_houses(stone_position):
+            if self.grid.if_no_houses(stone_position):
                 self.grid.resource_matrix_stone[stone_position] += 1
 
         for _ in range(self.num_resources - num_wood):
             wood_position = self.get_random_position()
-            if self.grid.if_no_agents_houses(wood_position):
+            if self.grid.if_no_houses(wood_position):
                 self.grid.resource_matrix_wood[wood_position] += 1
 
     def spawn_agents(self):

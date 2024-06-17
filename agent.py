@@ -95,7 +95,7 @@ class Agent:
         Finds all possible moves and returns them
         """
         neighbors = self.grid.get_neighbors(self.position)
-        return [neighbor for neighbor in neighbors if self.grid.if_no_agents_houses(neighbor)]
+        return [neighbor for neighbor in neighbors if self.grid.if_no_agents(neighbor)]
 
     def get_direction_to_position(self, position, normalized=True):
         """
@@ -153,10 +153,15 @@ class Agent:
         """
         Agent completes the construction of a house
         """
-        self.grid.house_matrix[self.position] = 1
+        if self.grid.house_matrix[self.position] >= self.grid.max_house_num:
+            return
+        self.grid.house_matrix[self.position] += 1
         house = House(self.agent_id, self.position)
         self.houses.append(house)
-        self.grid.houses[self.position] = house
+        if self.position not in self.grid.houses:
+            self.grid.houses[self.position] = [house]
+        else:
+            self.grid.houses[self.position].append(house)
         # print(f"Agent {self.agent_id} completed building a house at {self.position}")
 
     def build(self):
@@ -224,7 +229,7 @@ class Agent:
         self.grid.agent_matrix[self.position] = 0
 
         for house in self.houses:
-            self.grid.house_matrix[house.position] = 0
+            self.grid.house_matrix[house.position] -= 1
 
     def buy(self):
         """
@@ -279,7 +284,7 @@ class Agent:
         """
         Calculate the earning rate of building a house.
         """
-        if self.grid.house_cost[0] > self.wood or self.grid.house_cost[1] > self.stone or self.grid.house_matrix[self.position] != 0:
+        if self.grid.house_cost[0] > self.wood or self.grid.house_cost[1] > self.stone or self.grid.house_matrix[self.position] >= self.grid.max_house_num:
             return 0
 
         age = self.sim.t - self.creation_time

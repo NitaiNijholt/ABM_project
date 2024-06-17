@@ -99,7 +99,7 @@ class Agent:
         Finds all possible moves and returns them
         """
         neighbors = self.grid.get_neighbors(self.position)
-        return [neighbor for neighbor in neighbors if self.grid.if_no_agents_houses(neighbor)]
+        return [neighbor for neighbor in neighbors if self.grid.if_no_agents(neighbor)]
 
     def get_direction_to_position(self, position, normalized=True):
         """
@@ -174,13 +174,14 @@ class Agent:
     def build_house(self):
         """
         Agent completes the construction of a house
-        """ 
-
-        self.grid.house_matrix[self.position] = 1
-        house = House(self.agent_id, self.position, income_per_timestep=self.income_per_timestep)
+        """
+        if self.grid.house_matrix[self.position] >= self.grid.max_house_num:
+            return
+        self.grid.house_matrix[self.position] += 1
+        house = House(self.agent_id, self.position)
         self.houses.append(house)
-        self.grid.houses[self.position] = house
-        # print(f"Agent {self.agent_id} completed building a house at {self.position}")#################################################################
+        self.grid.houses[self.position].append(house)
+        # print(f"Agent {self.agent_id} completed building a house at {self.position}")
 
     def build(self):
         """
