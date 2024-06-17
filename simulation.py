@@ -1,17 +1,18 @@
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import json
+import csv
 from agent import Agent
 from grid import Grid
 from market import Market
-# from orderbook import OrderBooks
-import matplotlib.pyplot as plt
+from orderbook import OrderBooks
 from static_tax_policy import StaticTaxPolicy
-import json
-import csv
-
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
-                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time = 5, save_file_path=None, tax_period=30, show_time=False, income_per_timestep=1):
+                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time=5, 
+                 save_file_path=None, tax_period=30, show_time=False, income_per_timestep=1):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """
@@ -35,10 +36,12 @@ class Simulation:
         self.writer = None
         self.show_time = show_time
         self.income_per_timestep = income_per_timestep
+        self.data = []
+        self.initial_wealth = []
 
         # Initialize Dynamic market
-        # self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
-        # self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time)
+        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
+        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time)
         
         # Initialize Static price market
         self.market = Market(wood_rate, stone_rate)
@@ -53,6 +56,9 @@ class Simulation:
         # Create number of agents
         for agent_id in range(1, num_agents + 1):
             self.make_agent(agent_id)
+        
+        # Plot initial wealth distribution
+        self.plot_initial_wealth_distribution()
         
         # Initialize resources
         self.initialize_resources()
@@ -86,11 +92,10 @@ class Simulation:
         else:
             wealth = 0  
             
+        self.initial_wealth.append(wealth)
+        
         agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep)
         self.grid.agents[agent_id] = agent
-        self.grid.agent_matrix[position] = agent_id
-
-        # Place agent on the grid
         self.grid.agent_matrix[position] = agent_id
 
     def get_random_position(self):
@@ -101,23 +106,33 @@ class Simulation:
     def timestep(self):
         self.t += 1
         agents = list(self.grid.agents.values())
+        for agent in agents:
+            agent.step()
+            self.data.append({
+                'timestep': self.t,
+                'agent_id': agent.agent_id,
+                'wealth': agent.wealth,
+                'houses': len(agent.houses),
+                'wood': agent.wood,
+                'stone': agent.stone,
+                'income': agent.income,
+                'position': agent.position,
+                'action': agent.current_action
+            })
+            agent.taxes_paid_at_timesteps.append(0)
         if self.t % self.resource_spawn_period == 0:
             self.spawn_resources()
         if self.t % self.tax_period == 0:
             self.tax_policy.apply_taxes()
         self.grid.update_house_incomes()
-        for agent in agents:
-            agent.step()
-            agent.taxes_paid_at_timesteps.append(0)
-
         
         # Buggy so commented out
         # if self.t % self.agent_spawn_period == 0:
         #     self.spawn_agents()
         
         # Update order books with current agents' state
-        # self.wood_order_book.agents_dict = self.get_agents_dict()
-        # self.stone_order_book.agents_dict = self.get_agents_dict()
+        self.wood_order_book.agents_dict = self.get_agents_dict()
+        self.stone_order_book.agents_dict = self.get_agents_dict()
         
         # # Update agents from order books after trades (wealth & resources)
         # self.update_agents_from_order_books()
@@ -127,18 +142,12 @@ class Simulation:
         
     def run(self):
         self.tax_policy = StaticTaxPolicy(self.grid)
-        if self.save_file_path:
-            with open(self.save_file_path, mode='a', newline='') as file:
-                self.writer = csv.writer(file)
-                for t in range(self.n_timesteps):
-                    if self.show_time:
-                        print(f"\nTimestep {t+1}:")
-                    self.timestep()
-        else:
-            for t in range(self.n_timesteps):
-                if self.show_time:
-                    print(f"\nTimestep {t+1}:")
-                self.timestep()
+        for t in range(self.n_timesteps):
+            if self.show_time:
+                print(f"\nTimestep {t+1}:")
+            self.timestep()
+        # Save the results to a CSV file after the simulation
+        self.save_results(self.save_file_path)
 
     def initialize_resources(self):
         """
@@ -167,8 +176,7 @@ class Simulation:
         num_wood = np.sum(self.grid.resource_matrix_wood)
         num_stone = np.sum(self.grid.resource_matrix_stone)
         # print(f"Number of wood resources: {num_wood}")
-        # print(f"Number of stone resources: {num_stone}")###################################################################
-
+        # print(f"Number of stone resources: {num_stone}")
 
         for _ in range(self.num_resources - num_stone):
             stone_position = self.get_random_position()
@@ -179,7 +187,6 @@ class Simulation:
             wood_position = self.get_random_position()
             if self.grid.if_no_agents_houses(wood_position):
                 self.grid.resource_matrix_wood[wood_position] += 1
-
 
     def spawn_agents(self):
         """
@@ -204,32 +211,96 @@ class Simulation:
     #             agent.wealth = self.stone_order_book.agents_dict[agent_id]['wealth']
     #             agent.stone = self.stone_order_book.agents_dict[agent_id]['stone']
 
-    def plot_wealth_over_time(self):
-        """
-        Plot wealth of agents over time.
-        """
-        for agent_id, wealth_history in self.wealth_over_time.items():
-            plt.plot(range(len(wealth_history)), wealth_history, marker='o', label=f'Agent {agent_id}')
+    def save_results(self, file_path):
+        df = pd.DataFrame(self.data)
+        df.to_csv(file_path, index=False)
+
+    def load_results(self, file_path):
+        df = pd.read_csv(file_path)
+        return df
+
+    def plot_results(self, file_path=None):
+        if file_path:
+            df = self.load_results(file_path)
+        else:
+            df = pd.DataFrame(self.data)
+
+        # Plot wealth over time
+        for agent_id in df['agent_id'].unique():
+            agent_data = df[df['agent_id'] == agent_id]
+            plt.plot(agent_data['timestep'], agent_data['wealth'], label=f'Agent {agent_id}')
         plt.xlabel('Timesteps')
         plt.ylabel('Wealth')
         plt.title('Wealth Over Time')
-        plt.legend()
         plt.grid(True)
         plt.show()
 
-    def plot_houses_over_time(self):
-        """
-        Plot number of houses of agents over time.
-        """
-        for agent_id, houses_history in self.houses_over_time.items():
-            plt.plot(range(len(houses_history)), houses_history, marker='o', label=f'Agent {agent_id}')
+        # Plot number of houses over time
+        for agent_id in df['agent_id'].unique():
+            agent_data = df[df['agent_id'] == agent_id]
+            plt.plot(agent_data['timestep'], agent_data['houses'], label=f'Agent {agent_id}')
         plt.xlabel('Timesteps')
         plt.ylabel('Number of Houses')
         plt.title('Number of Houses Over Time')
-        plt.legend()
         plt.grid(True)
         plt.show()
 
+        # Plot income over time
+        for agent_id in df['agent_id'].unique():
+            agent_data = df[df['agent_id'] == agent_id]
+            plt.plot(agent_data['timestep'], agent_data['income'], label=f'Agent {agent_id}')
+        plt.xlabel('Timesteps')
+        plt.ylabel('Income')
+        plt.title('Income Over Time')
+        plt.grid(True)
+        plt.show()
 
+        # Plot distribution of wealth at the final timestep
+        final_timestep = df[df['timestep'] == self.n_timesteps]
+        plt.hist(final_timestep['wealth'], bins=10, edgecolor='black')
+        plt.xlabel('Wealth')
+        plt.ylabel('Frequency')
+        plt.title('Wealth Distribution at Final Timestep')
+        plt.grid(True)
+        plt.show()
 
+        # Plot distribution of agent actions over time
+        action_counts = df['action'].value_counts()
+        action_counts.plot(kind='bar', edgecolor='black')
+        plt.xlabel('Action')
+        plt.ylabel('Frequency')
+        plt.title('Distribution of Agent Actions')
+        plt.grid(True)
+        plt.show()
 
+        # Plot aggregated income distribution over all timesteps
+        self.plot_aggregated_income_distribution(df)
+
+    def plot_aggregated_income_distribution(self, df=None):
+        if df is None:
+            df = pd.DataFrame(self.data)
+        incomes = df['income'].dropna()  # Drop any NaN values if they exist
+        plt.hist(incomes, bins=30, edgecolor='black', alpha=0.7)
+        plt.xlabel('Income')
+        plt.ylabel('Frequency')
+        plt.title('Aggregated Income Distribution Across All Timesteps')
+        plt.grid(True)
+        plt.show()
+
+    def plot_action_distribution(self):
+        df = pd.DataFrame(self.data)
+        action_counts = df['action'].value_counts()
+        action_counts.plot(kind='bar', edgecolor='black')
+        plt.xlabel('Action')
+        plt.ylabel('Frequency')
+        plt.title('Distribution of Agent Actions')
+        plt.grid(True)
+        plt.show()
+
+    def plot_initial_wealth_distribution(self):
+        plt.hist(self.initial_wealth, bins=10, edgecolor='black')
+        plt.xlabel('Wealth')
+        plt.ylabel('Frequency')
+        plt.title('Initial Wealth Distribution')
+        plt.grid(True)
+        plt.show()

@@ -7,12 +7,14 @@ start = time.time()
 
 # +
 # Params
-height = 50
-width = 50
-num_agents = 100
-n_timesteps = 500
-num_resources = 8
-house_cost = (2, 2)  # Define the cost of building a house
+height = 20
+width = 20
+num_agents = 10
+
+
+n_timesteps = 300
+num_resources = 800
+house_cost = (2,2)  # Define the cost of building a house
 wood_rate = 2  # Define the exchange rate for wood to wealth
 stone_rate = 3  # Define the exchange rate for stone to wealth
 
@@ -24,6 +26,11 @@ sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, num_resources=num_re
 
 # Run simulation
 sim.run()
+
+print(grid.house_matrix)
+
+sim.plot_results()
+
 
 end = time.time()
 
