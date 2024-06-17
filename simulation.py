@@ -12,7 +12,7 @@ from static_tax_policy import StaticTaxPolicy
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
                  lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time=5, 
-                 save_file_path=None, tax_period=30, show_time=False, income_per_timestep=1):
+                 save_file_path=None, tax_period=30, income_per_timestep=1):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """
@@ -34,7 +34,7 @@ class Simulation:
         self.save_file_path = save_file_path
         self.tax_period = tax_period
         self.writer = None
-        self.show_time = show_time
+        self.show_time = False
         self.income_per_timestep = income_per_timestep
         self.data = []
         self.initial_wealth = []
@@ -57,8 +57,8 @@ class Simulation:
         for agent_id in range(1, num_agents + 1):
             self.make_agent(agent_id)
         
-        # Plot initial wealth distribution
-        self.plot_initial_wealth_distribution()
+        # # Plot initial wealth distribution
+        # self.plot_initial_wealth_distribution()
         
         # Initialize resources
         self.initialize_resources()
@@ -140,7 +140,8 @@ class Simulation:
         # Update market prices
         self.market.update_price()
         
-    def run(self):
+    def run(self, show_time=False):
+        self.show_time = show_time
         self.tax_policy = StaticTaxPolicy(self.grid)
         for t in range(self.n_timesteps):
             if self.show_time:

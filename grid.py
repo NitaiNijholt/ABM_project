@@ -24,7 +24,7 @@ class Grid:
         self.resource_matrix_stone = np.zeros((self.width, self.height), dtype=int)
         self.house_matrix = np.zeros((self.width, self.height), dtype=int)
         self.house_incomes = np.ones((self.width, self.height), dtype=int) * income_per_timestep
-        # self.houses = {}
+        self.houses = {}
 
     def get_neighbors(self, position):
         """

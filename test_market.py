@@ -1,15 +1,17 @@
 from grid import Grid
 from simulation import Simulation
 from time import time
+import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import convolve2d
 
 
 start = time()
 # Params
 height = 20
 width = 20
-num_agents = 100
-n_timesteps = 500
+num_agents = 10
+n_timesteps = 50
 num_resources = 500
 house_cost = (2, 2)  # Define the cost of building a house
 lifetime_mean = 80
@@ -26,13 +28,20 @@ grid = Grid(width, height, house_cost)
 # Initialize simulation
 sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, lifetime_mean=lifetime_mean, lifetime_std=lifetime_std, num_resources=num_resources, wood_rate=wood_rate, stone_rate=stone_rate)
 
-sim.run()
+sim.run(show_time=True)
 
 # Print the grid
+kernel = np.array([
+    [0, 1, 0],
+    [1, 1, 1],
+    [0, 1, 0]])
+# a = np.arange(16).reshape(4, 4)
+# print(convolve2d(a, kernel, mode='same', boundary='wrap'))
 print("House incomes matrix:")
-print(sim.grid.house_incomes)
+print(grid.house_incomes)
 print("House matrix:")
-print(sim.grid.house_matrix)
+print(grid.house_matrix)
+assert np.array_equal(grid.house_incomes + grid.house_matrix - convolve2d(grid.house_matrix, kernel, mode='same', boundary='wrap'), np.ones_like(grid.house_matrix))
 # print("Wood matrix:")
 # print(sim.grid.resource_matrix_wood)
 # print("Stone matrix:")
@@ -52,14 +61,14 @@ print(sim.grid.house_matrix)
 
 end = time()
 print(end-start)
-plt.figure()
-plt.plot(sim.market.wood_rate_history, label='Wood rate')
-plt.plot(sim.market.stone_rate_history, label='Stone rate')
-plt.legend()
-plt.xlabel('Timestep')
-plt.ylabel('Rate')
-plt.title('Resource rates over time')
-plt.show()
+# plt.figure()
+# plt.plot(sim.market.wood_rate_history, label='Wood rate')
+# plt.plot(sim.market.stone_rate_history, label='Stone rate')
+# plt.legend()
+# plt.xlabel('Timestep')
+# plt.ylabel('Rate')
+# plt.title('Resource rates over time')
+# plt.show()
 
 # plt.figure()
 # plt.plot(np.cumsum(sim.market.wood_buy_history), label='Wood buy')
