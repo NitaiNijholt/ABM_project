@@ -7,8 +7,8 @@ class StaticTaxPolicy:
 
     def __init__(self, grid):
         self.grid = grid
-        self.pretax_house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
-        self.posttax_house_incomes = self.pretax_house_incomes.copy()
+        self.pretax_house_incomes = []
+        self.posttax_house_incomes = []
         # print("House incomes for all agents:", self.house_incomes)
         print("Initial pretax house incomes:", self.pretax_house_incomes)
 
@@ -18,7 +18,8 @@ class StaticTaxPolicy:
         return total_income
 
     def calculate_tax_brackets(self):
-        # self.house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
+        self.pretax_house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
+        self.posttax_house_incomes = self.pretax_house_incomes.copy()
         # Determine income brackets based on quantiles
         quartiles = np.percentile(self.pretax_house_incomes, [25, 50, 75, 100])
         # print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
@@ -48,20 +49,24 @@ class StaticTaxPolicy:
     def apply_taxes(self):
         # Apply tax to each agent and adjust their wealth
         total_tax_collected = 0
-        taxes = [self.calculate_tax(income) for income in self.pretax_house_incomes]
-        for idx, agent in enumerate(self.grid.agents.values()):
+        # taxes = [self.calculate_tax(income) for income in self.pretax_house_incomes]
+        for agent_id, agent in enumerate(self.grid.agents.values()):
             tax = self.calculate_tax(agent_id)
-            total_tax_collected += taxes[idx]
-            agent.wealth -= taxes[idx]
-            agent.taxes_paid_at_timesteps.append(taxes[idx])
-            #print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}. resources w/s {agent.wood}/{agent.stone}")
+            total_tax_collected += tax
+            agent.wealth -= tax
+            agent.taxes_paid_at_timesteps.append(tax)
+            # total_tax_collected += taxes[agent_id]
+            # agent.wealth -= taxes[agent_id]
+            # agent.taxes_paid_at_timesteps.append(taxes[agent_id])
+            print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}.")
 
         # Redistribution of tax revenue
         redistribution_amount = total_tax_collected / len(self.grid.agents) if self.grid.agents else 0
-        for idx, agent in enumerate(self.grid.agents.values()):
+        for agent_id, agent in enumerate(self.grid.agents.values()):
             agent.wealth += redistribution_amount
+            tax = self.calculate_tax(agent_id)
             # print(f"Agent {agent.agent_id} receives {redistribution_amount} from tax revenue, new wealth: {agent.wealth}.")
-            self.posttax_house_incomes[idx] = self.pretax_house_incomes[idx] - taxes[idx] + redistribution_amount
+            self.posttax_house_incomes[agent_id] = self.pretax_house_incomes[agent_id] - tax + redistribution_amount
             print(f"Posttax house incomes after redistribution: {self.posttax_house_incomes}")
 
 
