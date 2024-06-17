@@ -7,29 +7,33 @@ class StaticTaxPolicy:
 
     def __init__(self, grid):
         self.grid = grid
-        self.house_incomes = []
-        self.tax_brackets = []
+        self.pretax_house_incomes = []
+        self.posttax_house_incomes = []
         # print("House incomes for all agents:", self.house_incomes)
+        print("Initial pretax house incomes:", self.pretax_house_incomes)
 
     def calculate_house_income(self, agent):
+        # Calculate the total income from the houses owned by the agent
         total_income = np.sum([self.grid.house_incomes[house.position] for house in agent.houses])
         return total_income
 
     def calculate_tax_brackets(self):
-        self.house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
+        self.pretax_house_incomes = [self.calculate_house_income(agent) for agent in self.grid.agents.values()]
+        self.posttax_house_incomes = self.pretax_house_incomes.copy()
         # Determine income brackets based on quantiles
-        quartiles = np.percentile(self.house_incomes, [25, 50, 75, 100])
+        quartiles = np.percentile(self.pretax_house_incomes, [25, 50, 75, 100])
         # print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
         tax_rates = [0.1, 0.2, 0.3, 0.4]
 
         # Create a list of (upper_bound, tax_rate) tuples
         tax_brackets = [(quartiles[i], tax_rates[i]) for i in range(len(quartiles))]
+        # print("Updated tax brackets based on pretax incomes:", tax_brackets)
         return tax_brackets
 
     def calculate_tax(self, agent_id):
         # Calculate tax based on cumulative brackets for progressive taxation
         tax_brackets = self.calculate_tax_brackets()
-        income = self.house_incomes[agent_id]
+        income = self.pretax_house_incomes[agent_id]
         tax = 0
         previous_bound = 0
         for i, (upper_bound, tax_rate) in enumerate(tax_brackets):
@@ -44,22 +48,31 @@ class StaticTaxPolicy:
 
     def apply_taxes(self):
         # Apply tax to each agent and adjust their wealth
-        total_tax = 0
+        total_tax_collected = 0
+        # taxes = [self.calculate_tax(income) for income in self.pretax_house_incomes]
         for agent_id, agent in enumerate(self.grid.agents.values()):
             tax = self.calculate_tax(agent_id)
-            total_tax += tax
+            total_tax_collected += tax
             agent.wealth -= tax
             agent.taxes_paid_at_timesteps.append(tax)
-            #print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}. resources w/s {agent.wood}/{agent.stone}")
+            # total_tax_collected += taxes[agent_id]
+            # agent.wealth -= taxes[agent_id]
+            # agent.taxes_paid_at_timesteps.append(taxes[agent_id])
+            print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}.")
 
         # Redistribution of tax revenue
-        for agent_id, agent in self.grid.agents.items():
-            agent.wealth += total_tax / len(self.grid.agents)
-            # print(f"Agent {agent.agent_id} receives {total_tax / len(self.grid.agents)} from tax revenue, new wealth: {agent.wealth}.")
+        redistribution_amount = total_tax_collected / len(self.grid.agents) if self.grid.agents else 0
+        for agent_id, agent in enumerate(self.grid.agents.values()):
+            agent.wealth += redistribution_amount
+            tax = self.calculate_tax(agent_id)
+            # print(f"Agent {agent.agent_id} receives {redistribution_amount} from tax revenue, new wealth: {agent.wealth}.")
+            self.posttax_house_incomes[agent_id] = self.pretax_house_incomes[agent_id] - tax + redistribution_amount
+            print(f"Posttax house incomes after redistribution: {self.posttax_house_incomes}")
 
-    def gini_coefficient(self):
+
+    def gini_coefficient(self, use_posttax=True):
         # Calculate the Gini coefficient
-        incomes = np.array(self.house_incomes)
+        incomes = np.array(self.posttax_house_incomes if use_posttax else self.pretax_house_incomes)
         n = len(incomes)
         income_matrix = np.abs(np.subtract.outer(incomes, incomes))
         gini = income_matrix.sum() / (2 * n * np.sum(incomes))
@@ -74,9 +87,9 @@ class StaticTaxPolicy:
         print(f"Calculated Equality Measure: {eq_value}")
         return eq_value
 
-    def calculate_productivity(self):
+    def calculate_productivity(self, use_posttax=True):
         # Sum of all house incomes which represents the total productivity
-        total_productivity = np.sum(self.house_incomes)
+        total_productivity = np.sum(self.posttax_house_incomes if use_posttax else self.pretax_house_incomes)
         print(f"Total Productivity: {total_productivity}")
         return total_productivity
 
