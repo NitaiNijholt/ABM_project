@@ -157,7 +157,7 @@ class Agent:
         house = House(self.agent_id, self.position)
         self.houses.append(house)
         self.grid.houses[self.position] = house
-        print(f"Agent {self.agent_id} completed building a house at {self.position}")
+        # print(f"Agent {self.agent_id} completed building a house at {self.position}")
 
     def build(self):
         """
@@ -177,7 +177,7 @@ class Agent:
         self.income = income_collected  # Track the income
 
     def step(self):
-        print(f"Agent {self.agent_id} at step {self.sim.t}: Wealth={self.wealth}, Wood={self.wood}, Stone={self.stone}")
+        # print(f"Agent {self.agent_id} at step {self.sim.t}: Wealth={self.wealth}, Wood={self.wood}, Stone={self.stone}")
         if self.currently_building_timesteps > 0:
             self.currently_building_timesteps += 1
             if self.currently_building_timesteps == self.required_building_time:
@@ -192,10 +192,10 @@ class Agent:
                 'sell': self.earning_rate_selling(),
                 'gather': self.earning_rate_gathering()
             }
-            print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
+            # print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
             action = actions[np.argmax(list(self.earning_rates.values()))]
             self.current_action = action.__name__
-            print(f"Agent {self.agent_id} performing action: {self.current_action}")
+            # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             action()
 
         self.collect_income()
@@ -222,6 +222,9 @@ class Agent:
         self.sim.make_agent(max(self.grid.agents.keys()) + 1)
         del self.grid.agents[self.agent_id]
         self.grid.agent_matrix[self.position] = 0
+
+        for house in self.houses:
+            self.grid.house_matrix[house.position] = 0
 
     def buy(self):
         """
@@ -270,7 +273,7 @@ class Agent:
             raise ValueError(f"Invalid order type: {order_type}")
 
         # Log the order placement for debugging
-        print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
+        # print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
 
     def earning_rate_building(self):
         """
@@ -329,10 +332,22 @@ class Agent:
         """
         Calculate the earning rate of moving to a neighboring cell randomly.
         """
-        positions_to_check = self.grid.get_neighbors(self.position)
+        if (self.grid.house_cost[0] <= self.wood and self.grid.house_cost[1] <= self.stone) and self.grid.house_matrix[self.position] != 0:
+            age = self.sim.t - self.creation_time
+            total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+            earning_rate = total_income / (self.required_building_time + 1)
+            return earning_rate
+        
+        positions = self.grid.get_neighbors(self.position) # 4 Von Neumann neighborhood
+        positions_to_check = set()
+        for close_position in positions:
+            for position in self.grid.get_neighbors(close_position):
+                positions_to_check.add(position)
+        
         earning_rate = 0
         for pos in positions_to_check:
             wood, stone = self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]
             required_time = max(wood, stone) + 1
             earning_rate += (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+        
         return earning_rate / len(positions_to_check)
