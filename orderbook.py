@@ -1,9 +1,6 @@
 import random
-
-# Make buying / selling price based on EV of the building of the houses?
-
-# +
 import numpy as np
+
 
 class OrderBooks:
     def __init__(self, agents_dict, resource_type, order_lifespan):
@@ -73,8 +70,8 @@ class OrderBooks:
                 
                 self.bids.remove(best_bid)
                 self.asks.remove(best_ask)
-                # Debugging
-                print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
+                # Debug print
+#                 print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
                 self.transactions.append({'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
             else:
                 break
