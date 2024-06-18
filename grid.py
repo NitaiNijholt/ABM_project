@@ -33,7 +33,6 @@ class Grid:
         """
         Return list containing coordinates of neighboring cells with periodic boundary conditions.
         """
-
         # Periodic boundary conditions in all directions
         top = ((position[0] - 1) % self.height, position[1])
         bottom = ((position[0] + 1) % self.height, position[1])

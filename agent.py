@@ -122,9 +122,9 @@ class Agent:
         move_scores = [1 + (score - min_score) ** self.objective_alpha for score in move_scores]
         return possible_moves[np.random.choice(len(possible_moves), p=np.array(move_scores)/sum(move_scores))]
 
-    def move(self):
+    def random_move(self):
         """
-        Agent moves to an empty neighboring cell. If all neighboring cells are occupied, the agent does not move.
+        Agent moves to a neighboring cell randomly.
         """
         possible_moves = self.find_moves()
         if len(possible_moves) == 0:
@@ -132,6 +132,15 @@ class Agent:
 
         new_position = possible_moves[np.random.randint(len(possible_moves))]
 
+        self.grid.agent_matrix[self.position] = 0
+        self.grid.agent_matrix[new_position] = self.agent_id
+        self.position = new_position
+
+    def move(self):
+        """
+        Agent moves to an empty neighboring cell. If all neighboring cells are occupied, the agent does not move.
+        """
+        new_position = self.find_target_position()
         self.grid.agent_matrix[self.position] = 0
         self.grid.agent_matrix[new_position] = self.agent_id
         self.position = new_position
@@ -178,7 +187,7 @@ class Agent:
         """
         Agent collects income from all houses.
         """
-        income_collected = sum(self.grid.house_incomes[house.position] for house in self.houses)
+        income_collected = sum(self.grid.house_incomes[house.position] for house in self.houses) * self.income_per_timestep
         self.wealth += income_collected
         self.income = income_collected  # Track the income
 
@@ -201,7 +210,6 @@ class Agent:
             }
             # print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
             action = actions[np.argmax(list(self.earning_rates.values()))]
-            # self.current_action = action.__name__
             # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             action()
             self.current_action = action.__name__
@@ -382,6 +390,16 @@ class Agent:
         Find the target position to move to.
         """
         positions = self.grid.get_neighbors(self.position)
+        positions = [pos for pos in positions if self.grid.if_no_agents(pos)]
+        # print(f"Agent {self.agent_id} available positions: {positions}")
+
+        # If there are no available positions, the agent should stay in the current position
+        if not positions:
+            print(f"Agent {self.agent_id} has no available positions to move to.")
+            print(f"Returning current position: {self.position}")
+            return self.position
+
+        # The initial best position is randomly selected from the available positions
         best_position = random.choice(positions)
 
         # When the agent has enough resources to build a house, the agent should move to the most valuable cell that is available for building
@@ -403,7 +421,9 @@ class Agent:
                 best_position = max(ideal_positions, key=lambda pos: min(self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]))
             # If there is no ideal position, the agent should move to the cell with the most required resources
             else:
-                if required_wood > required_stone:
+                if required_wood == required_stone:
+                    best_position = max(positions, key=lambda pos: self.grid.resource_matrix_wood[pos] + self.grid.resource_matrix_stone[pos])
+                elif required_wood > required_stone:
                     best_position = max(positions, key=lambda pos: self.grid.resource_matrix_wood[pos])
                 else:
                     best_position = max(positions, key=lambda pos: self.grid.resource_matrix_stone[pos])
