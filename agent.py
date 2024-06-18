@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import gamma, lognorm
 from grid import Grid
 from house import House
+import random
 
 class Agent:
     def __init__(self, sim, agent_id, position, grid, market, creation_time, 
@@ -192,7 +193,7 @@ class Agent:
         else:
             actions = [self.move, self.build, self.buy, self.sell, self.gather]
             self.earning_rates = {
-                'move': self.earning_rate_random_moving(),
+                'move': self.earning_rate_moving(self.find_target_position()),
                 'build': self.earning_rate_building(),
                 'buy': self.earning_rate_buying(),
                 'sell': self.earning_rate_selling(),
@@ -341,7 +342,7 @@ class Agent:
         """
         if (self.grid.house_cost[0] <= self.wood and self.grid.house_cost[1] <= self.stone) and self.grid.house_matrix[self.position] != 0:
             age = self.sim.t - self.creation_time
-            total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+            total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time - 1)
             earning_rate = total_income / (self.required_building_time + 1)
             return earning_rate
         
@@ -354,7 +355,57 @@ class Agent:
         earning_rate = 0
         for pos in positions_to_check:
             wood, stone = self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]
-            required_time = max(wood, stone) + 1
-            earning_rate += (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
-        
-        return earning_rate / len(positions_to_check)
+            required_time = min(wood, stone) + 1
+            earning_rate = (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+        return earning_rate
+
+    def earning_rate_moving(self, position):
+        """
+        Calculate the earning rate of moving to a target neighboring cell.
+        """
+        # If the agent has enough resources and the cell is available for building, the agent should go there and build a house
+        if self.grid.house_cost[0] <= self.wood and self.grid.house_cost[1] <= self.stone and self.grid.house_matrix[position] < self.grid.max_house_num:
+            age = self.sim.t - self.creation_time
+            total_income = self.income_per_timestep * self.grid.house_incomes[position] * (self.guessed_lifetime - age - self.required_building_time - 1)
+            earning_rate = total_income / (self.required_building_time + 1)
+            return earning_rate
+        # Otherwise, the agent should move to the target cell and gather resources
+        else:
+            wood, stone = self.grid.resource_matrix_wood[position], self.grid.resource_matrix_stone[position]
+            required_time = min(wood, stone) + 1
+            earning_rate = (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+
+        return earning_rate
+
+    def find_target_position(self):
+        """
+        Find the target position to move to.
+        """
+        positions = self.grid.get_neighbors(self.position)
+        best_position = random.choice(positions)
+
+        # When the agent has enough resources to build a house, the agent should move to the most valuable cell that is available for building
+        if self.wood >= self.grid.house_cost[0] and self.stone >= self.grid.house_cost[1]:
+            for pos in positions:
+                if self.grid.house_matrix[pos] < self.grid.max_house_num and self.grid.house_incomes[pos] > self.grid.house_incomes[best_position]:
+                    best_position = pos
+        # Otherwise, the agent should move to the neighbors to gather resources
+        else:
+            required_wood, required_stone = self.grid.house_cost[0] - self.wood, self.grid.house_cost[1] - self.stone
+            for pos in positions:
+                wood, stone = self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]
+                # ideal_positions is a list of positions where the agent can gather enough resources
+                ideal_positions = []
+                if wood >= required_wood and stone >= required_stone:
+                    ideal_positions.append(pos)
+            # If there are ideal positions, the agent should move to the cell with the most resources
+            if ideal_positions:
+                best_position = max(ideal_positions, key=lambda pos: min(self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]))
+            # If there is no ideal position, the agent should move to the cell with the most required resources
+            else:
+                if required_wood > required_stone:
+                    best_position = max(positions, key=lambda pos: self.grid.resource_matrix_wood[pos])
+                else:
+                    best_position = max(positions, key=lambda pos: self.grid.resource_matrix_stone[pos])
+
+        return best_position

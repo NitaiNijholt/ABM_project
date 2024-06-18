@@ -5,7 +5,7 @@ from simulation import Simulation
 height = 4
 width = 4
 num_agents = 2
-n_timesteps = 10
+n_timesteps = 20
 num_resources = 10
 house_cost = (2, 2)  # Define the cost of building a house
 wood_rate = 2  # Define the exchange rate for wood to wealth

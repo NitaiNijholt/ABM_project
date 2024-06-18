@@ -62,10 +62,10 @@ class StaticTaxPolicy:
         redistribution_amount = total_tax_collected / len(self.grid.agents) if self.grid.agents else 0
         for agent_id, agent in enumerate(self.grid.agents.values()):
             agent.wealth += redistribution_amount
-            print(f"Agent {agent.agent_id} receives {redistribution_amount} from tax revenue, new wealth: {agent.wealth}.")
-            self.posttax_incomes[agent_id] = self.pretax_incomes[agent_id] - taxes[agent_id] + redistribution_amount
-        print(f"tax: {tax}")
-        print(f"Posttax house incomes after redistribution: {self.posttax_incomes}")
+#             print(f"Agent {agent.agent_id} receives {redistribution_amount} from tax revenue, new wealth: {agent.wealth}.")
+#             self.posttax_incomes[agent_id] = self.pretax_incomes[agent_id] - taxes[agent_id] + redistribution_amount
+#         print(f"tax: {tax}")
+#         print(f"Posttax house incomes after redistribution: {self.posttax_incomes}")
 
 
     def gini_coefficient(self, use_posttax=True):
