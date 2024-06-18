@@ -106,8 +106,8 @@ class DynamicTaxPolicy:
 
     def simulate_time_step(self, time_step):
         # Update pretax_incomes
-        # self.pretax_incomes = [agent.income for agent in self.grid.agents.values()]
-        self.pretax_incomes = [i*1000 for i in range(1, 5)]
+        self.pretax_incomes = [agent.income for agent in self.grid.agents.values()]
+        # self.pretax_incomes = [i*1000 for i in range(1, 5)]  # For testing purposes
         print("Pretax incomes for all agents:", self.pretax_incomes)
 
         # # Add random fluctuation to pretax_incomes (only for testing welfare change)
