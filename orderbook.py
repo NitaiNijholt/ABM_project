@@ -28,12 +28,14 @@ class OrderBooks:
         self.current_timestep = 0
     
     def place_bid(self, agent_id, price):
-        print(f"Placing bid: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
+        # Debug print
+#         print(f"Placing bid: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
         self.bids.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
         self.match_orders('bid')
         
     def place_ask(self, agent_id, price):
-        print(f"Placing ask: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
+        # Debug print
+#         print(f"Placing ask: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
         self.asks.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
         self.match_orders('ask')
         
@@ -55,8 +57,6 @@ class OrderBooks:
             best_ask = min(self.asks, key=lambda x: x['price'])
             
             if best_bid['price'] >= best_ask['price']:
-                print('BEST_BID, BEST_ASK', best_bid, best_ask)
-                print('AGENT_DICT HERE WEEWEWEO', self.agents_dict)
                 bid_agent = self.agents_dict[best_bid['agent_id']]
                 ask_agent = self.agents_dict[best_ask['agent_id']]
                 
@@ -73,6 +73,7 @@ class OrderBooks:
                 
                 self.bids.remove(best_bid)
                 self.asks.remove(best_ask)
+                # Debugging
                 print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
                 self.transactions.append({'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
             else:
@@ -81,6 +82,13 @@ class OrderBooks:
     def increment_timestep(self):
         self.current_timestep += 1
         self.expire_orders()
+    
+    def remove_orders(self, agent_id):
+        """
+        Remove all orders of a given agent from the order books.
+        """
+        self.bids = [order for order in self.bids if order['agent_id'] != agent_id]
+        self.asks = [order for order in self.asks if order['agent_id'] != agent_id]
 
     def expire_orders(self):
         self.bids = [order for order in self.bids if not self.expire_order(order, 'bid')]

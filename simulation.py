@@ -3,11 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import csv
-from agent import Agent
+from agent_dynamic_market import Agent
 from grid import Grid
 from market import Market
 from orderbook import OrderBooks
 from static_tax_policy import StaticTaxPolicy
+
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 

@@ -60,6 +60,7 @@ class Agent:
         self.bought_at_timesteps = []
         self.sold_at_timesteps = []
         self.taxes_paid_at_timesteps = []
+        self.order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
 
         self.income = 0  # New attribute to track income
 
@@ -185,7 +186,6 @@ class Agent:
         # print(f"Agent {self.agent_id} at step {self.sim.t}: Wealth={self.wealth}, Wood={self.wood}, Stone={self.stone}")
         if self.currently_building_timesteps > 0:
             self.currently_building_timesteps += 1
-            self.current_action = 'building_house'
             if self.currently_building_timesteps == self.required_building_time:
                 self.currently_building_timesteps = 0
                 self.build_house()
@@ -200,11 +200,10 @@ class Agent:
             }
             # print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
             action = actions[np.argmax(list(self.earning_rates.values()))]
-            # self.current_action = action.__name__
+            self.current_action = action.__name__
             # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             action()
-            self.current_action = action.__name__
-            
+
         self.collect_income()
         self.wealth_over_time.append(self.wealth)
         self.houses_over_time.append(len(self.houses))
@@ -229,6 +228,10 @@ class Agent:
         self.sim.make_agent(max(self.grid.agents.keys()) + 1)
         del self.grid.agents[self.agent_id]
         self.grid.agent_matrix[self.position] = 0
+        
+        # Remove agent's orders from the order books
+        self.sim.wood_order_book.remove_orders(self.agent_id)
+        self.sim.stone_order_book.remove_orders(self.agent_id)
 
         for house in self.houses:
             self.grid.house_matrix[house.position] -= 1
@@ -236,16 +239,23 @@ class Agent:
     def buy(self):
         """
         Agent buys resources from the market.
-        """
+        """      
         wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
         stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
-        self.market.add_buyer(self, wood_to_buy, stone_to_buy)
+        wood_price = self.determine_price('buy', 'wood')
+        stone_price = self.determine_price('buy', 'stone')
+        self.place_order(self.order_books, 'wood', 'buy', price = wood_price, quantity = wood_to_buy)
+        self.place_order(self.order_books, 'stone', 'buy', price = stone_price, quantity = stone_to_buy)
 
     def sell(self):
         """
         Agent sells all resources to the market.
         """
-        self.market.add_seller(self, self.wood, self.stone)
+        
+        wood_price = self.determine_price('sell', 'wood')
+        stone_price = self.determine_price('sell', 'stone')
+        self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
+        self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
 
     def place_order(self, order_books, resource_type, order_type, price, quantity):
         """
@@ -282,6 +292,80 @@ class Agent:
         # Log the order placement for debugging
         # print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
 
+    def update_prices(self, order_type):
+        order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
+        
+        building_earning_rate = self.earning_rate_building()
+        # max/min prices per resource for buying/selling 
+        age = self.sim.t - self.creation_time
+        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        earning_rate = total_income / self.required_building_time
+        m_price = earning_rate / sum(self.grid.house_cost)
+        ob_price_wood_bid, ob_price_wood_ask = self.sim.wood_order_book.check_price()
+        ob_price_stone_bid, ob_price_stone_ask = self.sim.stone_order_book.check_price()
+        assert order_type == 'sell' or order_type == 'buy', 'Takes in "buy" or "sell" only'
+
+        # Sell order
+        if order_type == 'sell':
+            if ob_price_wood_bid != None:
+                self.market.wood_rate = max(ob_price_wood_bid, m_price)
+            else:
+                self.market.wood_rate = m_price
+                
+            if ob_price_stone_bid != None:
+                self.market_stone_rate = max(ob_price_stone_bid, m_price)
+            else:
+                self.market_stone_rate = m_price
+        # if not sell then buy order
+        else:
+            if ob_price_wood_ask != None:
+                self.market.wood_rate = min(ob_price_wood_ask, m_price)
+            else:
+                self.market.wood_rate = m_price
+            if ob_price_stone_ask != None:
+                self.market.stone_rate = min(ob_price_stone_ask, m_price)
+            else:
+                self.market.stone_rate = m_price
+        
+    def determine_price(self, order_type, resource):
+        age = self.sim.t - self.creation_time
+        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        earning_rate = total_income / self.required_building_time
+        m_price = earning_rate / sum(self.grid.house_cost)
+        ob_price_wood_bid, ob_price_wood_ask = self.sim.wood_order_book.check_price()
+        ob_price_stone_bid, ob_price_stone_ask = self.sim.stone_order_book.check_price()
+        if order_type == 'buy':
+            if resource == 'wood':
+                if ob_price_wood_ask != None:
+                    self.market.wood_rate = min(ob_price_wood_ask, m_price)
+                    return self.market.wood_rate
+                else:
+                    self.market.wood_rate = m_price
+                    return self.market.wood_rate
+            if resource == 'stone':
+                if ob_price_stone_ask != None:
+                    self.market.stone_rate = min(ob_price_stone_ask, m_price)
+                    return self.market.stone_rate
+                else:
+                    self.market.stone_rate = m_price
+                    return self.market.stone_rate
+        elif order_type == 'sell':
+            if resource == 'wood':
+                if ob_price_wood_bid != None:
+                    self.market.wood_rate = max(ob_price_wood_bid, m_price)
+                    return self.market.wood_rate
+                else:
+                    self.market.wood_rate = m_price
+                    return self.market.wood_rate
+
+            if resource == 'stone':
+                if ob_price_stone_ask != None:
+                    self.market.stone_rate = max(ob_price_stone_bid, m_price)
+                    return self.market.stone_rate
+                else:
+                    self.market.stone_rate = m_price
+                    return self.market.stone_rate
+        
     def earning_rate_building(self):
         """
         Calculate the earning rate of building a house.
@@ -300,17 +384,19 @@ class Agent:
         """
         num_wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
         num_stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
+        self.update_prices('buy')
+        
         cost = self.market.wood_rate * num_wood_to_buy + self.market.stone_rate * num_stone_to_buy
 
+        # If agent has enough resources, return 0
         if num_wood_to_buy == 0 and num_stone_to_buy == 0:
             return 0
 
+        # If agent doesn't have enough wealth, return 0
         if cost > self.wealth:
             return 0
 
-        if num_wood_to_buy > self.market.wood or num_stone_to_buy > self.market.stone:
-            return 0
-
+        # Calculate and return the net earning rate
         age = self.sim.t - self.creation_time
         required_time = self.required_building_time + 1
         gross_income = self.income_per_timestep * (self.guessed_lifetime - age - required_time)
@@ -320,25 +406,31 @@ class Agent:
         """
         Calculate the earning rate of selling resources.
         """
+        # If agent does not have any resources, return 0
         if self.wood == 0 and self.stone == 0:
+            print()
             return 0
+        self.update_prices('sell')
         earning_rate = self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
         return earning_rate
-
+    
     def earning_rate_gathering(self):
         """
         Calculate the earning rate of gathering resources in the current position.
         """
         if self.grid.resource_matrix_wood[self.position] == 0 and self.grid.resource_matrix_stone[self.position] == 0:
             return 0
-
+        self.update_prices('sell')
         earning_rate = self.market.wood_rate * min(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * min(1, self.grid.resource_matrix_stone[self.position])
         return earning_rate
+    
+    
 
     def earning_rate_random_moving(self):
         """
         Calculate the earning rate of moving to a neighboring cell randomly.
         """
+        self.update_prices('sell')
         if (self.grid.house_cost[0] <= self.wood and self.grid.house_cost[1] <= self.stone) and self.grid.house_matrix[self.position] != 0:
             age = self.sim.t - self.creation_time
             total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
