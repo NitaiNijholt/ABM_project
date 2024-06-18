@@ -3,11 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import csv
-from agent_dynamic_market import Agent
+from agent import Agent
 from grid import Grid
 from market import Market
 from orderbook import OrderBooks
-from static_tax_policy import StaticTaxPolicy
+from dynamic_tax_policy import DynamicTaxPolicy as TaxPolicy
 
 
 class Simulation:
@@ -39,6 +39,7 @@ class Simulation:
         self.income_per_timestep = income_per_timestep
         self.data = []
         self.initial_wealth = []
+        self.productivity = {}
 
         # Initialize Dynamic market
         self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
@@ -147,7 +148,7 @@ class Simulation:
         
     def run(self, show_time=False):
         self.show_time = show_time
-        self.tax_policy = StaticTaxPolicy(self.grid)
+        self.tax_policy = TaxPolicy(self.grid, self)
         for t in range(self.n_timesteps):
             if self.show_time:
                 print(f"\nTimestep {t+1}:")

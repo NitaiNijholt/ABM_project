@@ -1,23 +1,24 @@
-from grid import Grid
-from simulation import Simulation
 import numpy as np
 
 
 class DynamicTaxPolicy:
-    def __init__(self, grid, std_dev_threshold, discount_rate):
+    def __init__(self, grid, sim, std_dev_threshold=1000, discount_rate=0.95):
         self.grid = grid
         self.std_dev_threshold = std_dev_threshold
         self.discount_rate = discount_rate
         self.pretax_incomes = []
         self.posttax_incomes = []
-        self.base_tax_rates = [0.1, 0.2, 0.3, 0.4]  # Base tax rates
+        self.base_tax_rates = [0.1, 0.2, 0.3, 0.4]
         self.tax_brackets = []
         self.previous_welfare = 0
         self.total_discounted_welfare_change = 0
+        self.sim = sim
 
 
     def update_tax_brackets(self):
+        self.pretax_incomes = [agent.income for agent in self.grid.agents.values()]
         self.posttax_incomes = self.pretax_incomes.copy()
+        
         income_values = self.pretax_incomes   # Use pretax incomes for setting tax brackets
         current_std_dev = np.std(income_values)
 
@@ -37,9 +38,9 @@ class DynamicTaxPolicy:
         print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
         self.tax_brackets = [(quartiles[i], adjusted_tax_rates[i]) for i in range(len(quartiles))]
 
-    def calculate_tax(self, agent):
-        income = self.pretax_incomes[agent.agent_id - 1]
-        print(f"Agent {agent.agent_id} has pretax income {income}.")
+    def calculate_tax(self, agent_idx):
+        income = self.pretax_incomes[agent_idx - 1]
+        print(f"Agent {agent_idx} has pretax income {income}.")
         tax = 0
         previous_bound = 0
         for upper_bound, tax_rate in self.tax_brackets:
@@ -51,13 +52,13 @@ class DynamicTaxPolicy:
                 break
         return tax
 
-
-    def collect_and_distribute_taxes(self):
+    def apply_taxes(self):
         # Collect taxes
+        self.update_tax_brackets()
         total_tax_collected = 0
         taxes = []
         for agent_idx, agent in enumerate(self.grid.agents.values()):
-            tax = self.calculate_tax(agent)
+            tax = self.calculate_tax(agent_idx)
             agent.wealth -= tax
             taxes.append(tax)
             total_tax_collected += tax
@@ -74,6 +75,12 @@ class DynamicTaxPolicy:
         for idx, agent in enumerate(self.grid.agents.values()):
             self.posttax_incomes[idx] = self.pretax_incomes[idx] - taxes[idx] + redistribution_amount
             print(f"Agent {agent.agent_id} has posttax income {self.posttax_incomes[idx]}.")
+        
+        current_welfare = self.calculate_social_welfare()
+        welfare_change = current_welfare - self.previous_welfare
+        discounted_change = (self.discount_rate ** self.sim.t) * welfare_change
+        self.total_discounted_welfare_change += discounted_change
+        self.previous_welfare = current_welfare
 
     def gini_coefficient(self, use_posttax=True):
         # Calculate the Gini coefficient
@@ -100,7 +107,9 @@ class DynamicTaxPolicy:
 
     def calculate_social_welfare(self):
         # Calculate the social welfare by equality * productivity
-        social_welfare = self.calculate_equality() * self.calculate_productivity()
+        productivity = self.calculate_productivity()
+        self.sim.productivity[self.sim.t] = productivity
+        social_welfare = self.calculate_equality() * productivity
         print(f"Calculated Social Welfare: {social_welfare}")
         return social_welfare
 
@@ -115,7 +124,7 @@ class DynamicTaxPolicy:
         # print(f"Adjusted pretax incomes at step {time_step}: {self.pretax_incomes}") 
 
         self.update_tax_brackets()
-        self.collect_and_distribute_taxes()
+        self.apply_taxes()
 
         current_welfare = self.calculate_social_welfare()
         welfare_change = current_welfare - self.previous_welfare
@@ -128,24 +137,24 @@ class DynamicTaxPolicy:
         print(f"Total discounted welfare change up to step {time_step}: {self.total_discounted_welfare_change}")
 
 
-# Initialize grid and agents
-grid = Grid(4, 4, (2, 2))
-sim = Simulation(0, grid)
-target_std_dev_threshold = 1000
+# # Initialize grid and agents
+# grid = Grid(4, 4, (2, 2))
+# sim = Simulation(0, grid)
+# target_std_dev_threshold = 1000
 
-# Create agents and build houses
-for i in range(1, 5):
-    sim.make_agent(i)
+# # Create agents and build houses
+# for i in range(1, 5):
+#     sim.make_agent(i)
 
-# Initialize dynamic tax policy and apply taxes
-dynamic_tax_policy = DynamicTaxPolicy(grid, target_std_dev_threshold, discount_rate=0.95)
+# # Initialize dynamic tax policy and apply taxes
+# dynamic_tax_policy = DynamicTaxPolicy(grid, target_std_dev_threshold, discount_rate=0.95)
 
-# Simulate 4 time steps and update tax policy each time
-for t in range(4): 
+# # Simulate 4 time steps and update tax policy each time
+# for t in range(4): 
 
-    # Run the simulation step with the updated incomes        
-    dynamic_tax_policy.simulate_time_step(t)
-    print(f"Simulation step {t+1} completed.")
+#     # Run the simulation step with the updated incomes        
+#     dynamic_tax_policy.simulate_time_step(t)
+#     print(f"Simulation step {t+1} completed.")
 
 
 

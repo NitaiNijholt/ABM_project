@@ -5,11 +5,12 @@ import numpy as np
 
 class StaticTaxPolicy:
 
-    def __init__(self, grid):
+    def __init__(self, grid, t):
         self.grid = grid
         # self.pretax_incomes = [i*1000 for i in range(1, 9)]   # test data
         self.pretax_incomes = []
         self.posttax_incomes = []
+        self.t = t
         # print("Initial pretax incomes:", self.pretax_incomes)
 
     def calculate_tax_brackets(self):
@@ -55,7 +56,7 @@ class StaticTaxPolicy:
             # total_tax_collected += taxes[agent_id]
             # agent.wealth -= taxes[agent_id]
             # agent.taxes_paid_at_timesteps.append(taxes[agent_id])
-            # print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}.")
+            print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}.")
 
         # Redistribution of tax revenue
         redistribution_amount = total_tax_collected / len(self.grid.agents) if self.grid.agents else 0
