@@ -104,8 +104,6 @@ class StaticTaxPolicy:
 # # Create agents and build houses
 # for i in range(1, 9):
 #     sim.make_agent(i)
-#     # for j in range(i):
-#     #     grid.agents[i].build_house()
 
 # # Initialize static tax policy and apply taxes
 # static_tax_policy = StaticTaxPolicy(grid)
