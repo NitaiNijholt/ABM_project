@@ -65,6 +65,7 @@ class MultipleRunSimulator:
 
             for run in range(1, self.num_runs + 1):
                 print(f"Running simulation {run}/{self.num_runs} for parameter combination {combination_index}/{len(self.param_combinations)}...")
+                print(f"Parameters: {param_set}")
                 sim = Simulation(**param_set)
                 sim.run()
                 self.save_run_data(sim.data, run, combination_index)
@@ -251,3 +252,50 @@ run_number = 1
 run_data, run_params = multiple_simulator.load_run_data(combination_index, run_number)
 print(run_data.head())
 print(run_params)
+
+# +
+# Define the range of values for sensitivity analysis
+sensitivity_params = {
+    'num_agents': [10, 20, 30, 40, 50]     
+}
+
+constant_params = {
+    'grid': [Grid(width=20, height=20)],
+    'n_timesteps': [100],
+    'num_resources': [50],
+    'stone_rate': [1],
+    'wood_rate': [1],
+    'lifetime_mean': [80],
+    'lifetime_std': [10],
+    'resource_spawn_period': [1],
+    'agent_spawn_period': [10],
+    'order_expiry_time': [5],
+    'save_file_path': [None],
+    'tax_period': [30],
+    'income_per_timestep': [1]
+}
+
+# Combine the two dictionaries
+combined_params = {**sensitivity_params, **constant_params}
+
+# +
+simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results')
+simulator.run_simulations()
+
+aggregated_data = simulator.aggregate_results()
+
+
+# +
+# Compute the maximum wealth for each agent across all runs
+max_wealth_by_agent = aggregated_data.groupby('agent_id')['wealth'].max()
+
+plt.figure(figsize=(10, 6))
+plt.bar(max_wealth_by_agent.index, max_wealth_by_agent.values, edgecolor='black')
+plt.xlabel('Agent ID')
+plt.ylabel('Maximum Wealth')
+plt.title('Maximum Wealth for Each Agent Across All Runs')
+plt.grid(True)
+plt.show()
+# -
+
+
