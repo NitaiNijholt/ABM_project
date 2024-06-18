@@ -12,6 +12,7 @@ class DynamicTaxPolicy:
         self.tax_brackets = []
         self.previous_welfare = 0
         self.total_discounted_welfare_change = 0
+        self.total_discounted_welfare_change_history = {}
         self.sim = sim
 
 
@@ -67,6 +68,8 @@ class DynamicTaxPolicy:
 
         # Distribute taxes evenly
         redistribution_amount = total_tax_collected / len(self.grid.agents) if self.grid.agents else 0
+        self.sim.average_tax_values[self.sim.t] = redistribution_amount
+        
         for agent_idx, agent in enumerate(self.grid.agents.values()):
             agent.wealth += redistribution_amount
             print(f"Agent {agent.agent_id} receives {redistribution_amount} from tax revenue, new wealth: {agent.wealth}.")
@@ -96,20 +99,22 @@ class DynamicTaxPolicy:
         n = len(self.grid.agents)
         gini_index = self.gini_coefficient()
         eq_value = 1 - (n / (n - 1)) * gini_index
+        self.sim.equality[self.sim.t] = eq_value
         print(f"Calculated Equality Measure: {eq_value}")
         return eq_value
 
     def calculate_productivity(self, use_posttax=True):
         # Sum of all incomes which represents the total productivity
         total_productivity = np.sum(self.posttax_incomes if use_posttax else self.pretax_incomes)
+        self.sim.productivity[self.sim.t] = total_productivity
         print(f"Total Productivity: {total_productivity}")
         return total_productivity
 
     def calculate_social_welfare(self):
         # Calculate the social welfare by equality * productivity
         productivity = self.calculate_productivity()
-        self.sim.productivity[self.sim.t] = productivity
         social_welfare = self.calculate_equality() * productivity
+        self.sim.social_welfare[self.sim.t] = social_welfare
         print(f"Calculated Social Welfare: {social_welfare}")
         return social_welfare
 
@@ -132,6 +137,8 @@ class DynamicTaxPolicy:
         self.total_discounted_welfare_change += discounted_change
         self.previous_welfare = current_welfare
 
+        self.total_discounted_welfare_change_history[time_step] = self.total_discounted_welfare_change
+        self.sim.total_discounted_welfare_change[self.sim.t] = self.total_discounted_welfare_change
         print(f"Welfare change at step {time_step}: {welfare_change}")
         print(f"Discounted welfare change at step {time_step}: {discounted_change}")
         print(f"Total discounted welfare change up to step {time_step}: {self.total_discounted_welfare_change}")

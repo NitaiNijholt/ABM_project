@@ -39,7 +39,11 @@ class Simulation:
         self.income_per_timestep = income_per_timestep
         self.data = []
         self.initial_wealth = []
+        self.average_tax_values = {}
+        self.equality = {}
         self.productivity = {}
+        self.social_welfare = {}
+        self.total_discounted_welfare_change = {}
 
         # Initialize Dynamic market
         self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
@@ -297,5 +301,56 @@ class Simulation:
         plt.xlabel('Wealth')
         plt.ylabel('Frequency')
         plt.title('Initial Wealth Distribution')
+        plt.grid(True)
+        plt.show()
+
+    def plot_average_tax_values(self):
+        timesteps = list(self.average_tax_values.keys())
+        average_tax_values = list(self.average_tax_values.values())
+        plt.plot(timesteps, average_tax_values)
+        plt.xlabel('Timesteps')
+        plt.ylabel('Average Tax Amount')
+        plt.title('Average Tax Amount Over Time')
+        plt.grid(True)
+        plt.show()
+
+    def plot_equality_over_time(self):
+        timesteps = list(self.equality.keys())
+        equality_values = list(self.equality.values())
+        plt.plot(timesteps, equality_values)
+        plt.xlabel('Timesteps')
+        plt.ylabel('Equality')
+        plt.title('Equality Over Time')
+        plt.grid(True)
+        plt.show()
+
+
+    def plot_productivity_over_time(self):
+        timesteps = list(self.productivity.keys())
+        productivity_values = list(self.productivity.values())
+        plt.plot(timesteps, productivity_values)
+        plt.xlabel('Timesteps')
+        plt.ylabel('Productivity')
+        plt.title('Productivity Over Time')
+        plt.grid(True)
+        plt.show()
+
+    def plot_social_welfare_over_time(self):
+        timesteps = list(self.social_welfare.keys())
+        social_welfare_values = list(self.social_welfare.values())
+        plt.plot(timesteps, social_welfare_values)
+        plt.xlabel('Timesteps')
+        plt.ylabel('Social Welfare')
+        plt.title('Social Welfare Over Time')
+        plt.grid(True)
+        plt.show()
+
+    def plot_total_discounted_welfare_change_over_time(self):
+        timesteps = list(self.total_discounted_welfare_change.keys())
+        total_discounted_welfare_change_values = list(self.total_discounted_welfare_change.values())
+        plt.plot(timesteps, total_discounted_welfare_change_values)
+        plt.xlabel('Timesteps')
+        plt.ylabel('Total Discounted Welfare Change')
+        plt.title('Total Discounted Welfare Change Over Time')
         plt.grid(True)
         plt.show()
