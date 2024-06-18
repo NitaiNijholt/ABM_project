@@ -10,8 +10,8 @@ start = time()
 # Params
 height = 30
 width = 30
-num_agents = 100
-n_timesteps = 10000
+num_agents = 40
+n_timesteps = 1000
 num_resources = 10000
 house_cost = (2, 2)  # Define the cost of building a house
 lifetime_mean = 80
@@ -33,6 +33,20 @@ sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, lifetime_mean=lifeti
 sim.run(show_time=False)
 end = time()
 print(end-start)
+
+# +
+wood_prices = [transaction['price'] for transaction in sim.wood_order_book.transactions]
+transactions_timesteps = list(range(len(wood_prices)))
+print(len(transactions_timesteps), len(wood_prices))
+
+# Plot the transaction prices over time
+plt.plot(transactions_timesteps, wood_prices, marker='o', markersize=1)
+plt.xlabel('Time Step')
+plt.ylabel('Transaction Price')
+plt.title('Transactions Over Time')
+plt.grid(True)
+plt.show()
+# -
 
 grid.plot_houses()
 # # Print the grid
