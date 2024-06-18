@@ -193,7 +193,7 @@ class Agent:
         else:
             actions = [self.move, self.build, self.buy, self.sell, self.gather]
             self.earning_rates = {
-                'move': self.earning_rate_random_moving(),
+                'move': self.earning_rate_moving(self.find_target_position()),
                 'build': self.earning_rate_building(),
                 'buy': self.earning_rate_buying(),
                 'sell': self.earning_rate_selling(),
@@ -372,10 +372,10 @@ class Agent:
         # Otherwise, the agent should move to the target cell and gather resources
         else:
             wood, stone = self.grid.resource_matrix_wood[position], self.grid.resource_matrix_stone[position]
-            required_time = max(wood, stone) + 1
-            earning_rate += (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+            required_time = min(wood, stone) + 1
+            earning_rate = (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
 
-        return earning_rate / len(positions)
+        return earning_rate
 
     def find_target_position(self):
         """
