@@ -1,5 +1,5 @@
-from grid import Grid
-from simulation import Simulation
+# from grid import Grid
+# from simulation import Simulation
 import numpy as np
 
 
@@ -97,22 +97,22 @@ class StaticTaxPolicy:
         return social_welfare
 
 
-# Initialize grid and agents
-grid = Grid(4, 4, (2, 2))
-sim = Simulation(0, grid)
+# # Initialize grid and agents
+# grid = Grid(4, 4, (2, 2))
+# sim = Simulation(0, grid)
 
-# Create agents and build houses
-for i in range(1, 9):
-    sim.make_agent(i)
-    # for j in range(i):
-    #     grid.agents[i].build_house()
+# # Create agents and build houses
+# for i in range(1, 9):
+#     sim.make_agent(i)
+#     # for j in range(i):
+#     #     grid.agents[i].build_house()
 
-# Initialize static tax policy and apply taxes
-static_tax_policy = StaticTaxPolicy(grid)
-static_tax_policy.apply_taxes()
-static_tax_policy.calculate_equality()
-static_tax_policy.calculate_productivity()
-static_tax_policy.calculate_social_welfare()
+# # Initialize static tax policy and apply taxes
+# static_tax_policy = StaticTaxPolicy(grid)
+# static_tax_policy.apply_taxes()
+# static_tax_policy.calculate_equality()
+# static_tax_policy.calculate_productivity()
+# static_tax_policy.calculate_social_welfare()
 
 
 

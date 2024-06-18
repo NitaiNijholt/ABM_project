@@ -185,6 +185,7 @@ class Agent:
         # print(f"Agent {self.agent_id} at step {self.sim.t}: Wealth={self.wealth}, Wood={self.wood}, Stone={self.stone}")
         if self.currently_building_timesteps > 0:
             self.currently_building_timesteps += 1
+            self.current_action = 'building_house'
             if self.currently_building_timesteps == self.required_building_time:
                 self.currently_building_timesteps = 0
                 self.build_house()
@@ -199,10 +200,11 @@ class Agent:
             }
             # print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
             action = actions[np.argmax(list(self.earning_rates.values()))]
-            self.current_action = action.__name__
+            # self.current_action = action.__name__
             # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             action()
-
+            self.current_action = action.__name__
+            
         self.collect_income()
         self.wealth_over_time.append(self.wealth)
         self.houses_over_time.append(len(self.houses))
