@@ -5,24 +5,25 @@ import numpy as np
 
 class StaticTaxPolicy:
 
-    def __init__(self, grid, t):
+    def __init__(self, grid, sim):
         self.grid = grid
         # self.pretax_incomes = [i*1000 for i in range(1, 9)]   # test data
         self.pretax_incomes = []
         self.posttax_incomes = []
-        self.t = t
+        self.sim = sim
+        self.quartiles = []
         # print("Initial pretax incomes:", self.pretax_incomes)
 
     def calculate_tax_brackets(self):
         self.pretax_incomes = [agent.income for agent in self.grid.agents.values()]
         self.posttax_incomes = self.pretax_incomes.copy()
         # Determine income brackets based on quantiles
-        quartiles = np.percentile(self.pretax_incomes, [25, 50, 75, 100])
+        self.quartiles = np.percentile(self.pretax_incomes, [25, 50, 75, 100])
         # print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
         tax_rates = [0.1, 0.2, 0.3, 0.4]
 
         # Create a list of (upper_bound, tax_rate) tuples
-        tax_brackets = [(quartiles[i], tax_rates[i]) for i in range(len(quartiles))]
+        tax_brackets = [(self.quartiles[i], tax_rates[i]) for i in range(len(self.quartiles))]
         # print("Updated tax brackets based on pretax incomes:", tax_brackets)
         return tax_brackets
 
