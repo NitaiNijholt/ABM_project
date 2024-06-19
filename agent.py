@@ -54,6 +54,7 @@ class Agent:
         self.required_building_time = 5
         self.current_action = 'Nothing'
         self.earning_rates = {}
+        self.best_position = 0
 
         self.wealth_over_time = []
         self.houses_over_time = []
@@ -140,7 +141,7 @@ class Agent:
         """
         Agent moves to an empty neighboring cell. If all neighboring cells are occupied, the agent does not move.
         """
-        new_position = self.find_target_position()
+        new_position = self.best_position
         self.grid.agent_matrix[self.position] = 0
         self.grid.agent_matrix[new_position] = self.agent_id
         self.position = new_position
@@ -201,8 +202,9 @@ class Agent:
                 self.build_house()
         else:
             actions = [self.move, self.build, self.buy, self.sell, self.gather]
+            self.best_position = self.find_target_position()
             self.earning_rates = {
-                'move': self.earning_rate_moving(self.find_target_position()),
+                'move': self.earning_rate_moving(),
                 'build': self.earning_rate_building(),
                 'buy': self.earning_rate_buying(),
                 'sell': self.earning_rate_selling(),
@@ -341,7 +343,7 @@ class Agent:
         if self.grid.resource_matrix_wood[self.position] == 0 and self.grid.resource_matrix_stone[self.position] == 0:
             return 0
 
-        earning_rate = self.market.wood_rate * min(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * min(1, self.grid.resource_matrix_stone[self.position])
+        earning_rate = self.market.wood_rate * max(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * max(1, self.grid.resource_matrix_stone[self.position])
         return earning_rate
 
     def earning_rate_random_moving(self):
@@ -367,10 +369,12 @@ class Agent:
             earning_rate = (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
         return earning_rate
 
-    def earning_rate_moving(self, position):
+    def earning_rate_moving(self):
         """
         Calculate the earning rate of moving to a target neighboring cell.
         """
+
+        position = self.best_position
         # If the agent has enough resources and the cell is available for building, the agent should go there and build a house
         if self.grid.house_cost[0] <= self.wood and self.grid.house_cost[1] <= self.stone and self.grid.house_matrix[position] < self.grid.max_house_num:
             age = self.sim.t - self.creation_time
