@@ -12,7 +12,6 @@ class DynamicTaxPolicy:
         self.tax_brackets = []
         self.previous_welfare = 0
         self.total_discounted_welfare_change = 0
-        self.total_discounted_welfare_change_history = {}
         self.sim = sim
 
 
@@ -85,6 +84,9 @@ class DynamicTaxPolicy:
         self.total_discounted_welfare_change += discounted_change
         self.previous_welfare = current_welfare
 
+        self.sim.total_discounted_welfare_change[self.sim.t] = self.total_discounted_welfare_change
+        print(f"Total discounted welfare change at step {self.sim.t}: {self.total_discounted_welfare_change}")
+
     def gini_coefficient(self, use_posttax=True):
         # Calculate the Gini coefficient
         incomes = np.array(self.posttax_incomes if use_posttax else self.pretax_incomes)
@@ -129,19 +131,19 @@ class DynamicTaxPolicy:
         # print(f"Adjusted pretax incomes at step {time_step}: {self.pretax_incomes}") 
 
         self.update_tax_brackets()
-        self.apply_taxes()
+        self.apply_taxes(time_step)
 
-        current_welfare = self.calculate_social_welfare()
-        welfare_change = current_welfare - self.previous_welfare
-        discounted_change = (self.discount_rate ** time_step) * welfare_change
-        self.total_discounted_welfare_change += discounted_change
-        self.previous_welfare = current_welfare
+        # current_welfare = self.calculate_social_welfare()
+        # welfare_change = current_welfare - self.previous_welfare
+        # discounted_change = (self.discount_rate ** time_step) * welfare_change
+        # self.total_discounted_welfare_change += discounted_change
+        # self.previous_welfare = current_welfare
 
-        self.total_discounted_welfare_change_history[time_step] = self.total_discounted_welfare_change
-        self.sim.total_discounted_welfare_change[self.sim.t] = self.total_discounted_welfare_change
-        print(f"Welfare change at step {time_step}: {welfare_change}")
-        print(f"Discounted welfare change at step {time_step}: {discounted_change}")
-        print(f"Total discounted welfare change up to step {time_step}: {self.total_discounted_welfare_change}")
+        # self.total_discounted_welfare_change_history[time_step] = self.total_discounted_welfare_change
+        # self.sim.total_discounted_welfare_change[self.sim.t] = self.total_discounted_welfare_change
+        # print(f"Welfare change at step {time_step}: {welfare_change}")
+        # print(f"Discounted welfare change at step {time_step}: {discounted_change}")
+        # print(f"Total discounted welfare change up to step {time_step}: {self.total_discounted_welfare_change}")
 
 
 # # Initialize grid and agents

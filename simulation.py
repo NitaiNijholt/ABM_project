@@ -347,8 +347,8 @@ class Simulation:
 
     def plot_total_discounted_welfare_change_over_time(self):
         timesteps = list(self.total_discounted_welfare_change.keys())
-        total_discounted_welfare_change_values = list(self.total_discounted_welfare_change.values())
-        plt.plot(timesteps, total_discounted_welfare_change_values)
+        total_discounted_welfare_change = list(self.total_discounted_welfare_change.values())
+        plt.plot(timesteps, total_discounted_welfare_change)
         plt.xlabel('Timesteps')
         plt.ylabel('Total Discounted Welfare Change')
         plt.title('Total Discounted Welfare Change Over Time')
