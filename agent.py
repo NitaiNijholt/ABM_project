@@ -410,22 +410,5 @@ class Agent:
         # Otherwise, the agent should move to the neighbors to gather resources
         else:
             required_wood, required_stone = self.grid.house_cost[0] - self.wood, self.grid.house_cost[1] - self.stone
-            for pos in positions:
-                wood, stone = self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]
-                # ideal_positions is a list of positions where the agent can gather enough resources
-                ideal_positions = []
-                if wood >= required_wood and stone >= required_stone:
-                    ideal_positions.append(pos)
-            # If there are ideal positions, the agent should move to the cell with the most resources
-            if ideal_positions:
-                best_position = max(ideal_positions, key=lambda pos: min(self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]))
-            # If there is no ideal position, the agent should move to the cell with the most required resources
-            else:
-                if required_wood == required_stone:
-                    best_position = max(positions, key=lambda pos: self.grid.resource_matrix_wood[pos] + self.grid.resource_matrix_stone[pos])
-                elif required_wood > required_stone:
-                    best_position = max(positions, key=lambda pos: self.grid.resource_matrix_wood[pos])
-                else:
-                    best_position = max(positions, key=lambda pos: self.grid.resource_matrix_stone[pos])
-
+            best_position = max(positions, key=lambda pos: min(self.grid.resource_matrix_wood[pos], required_wood) + min(self.grid.resource_matrix_stone[pos], required_stone))
         return best_position
