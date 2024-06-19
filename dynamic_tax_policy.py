@@ -14,7 +14,6 @@ class DynamicTaxPolicy:
         self.total_discounted_welfare_change = 0
         self.total_discounted_welfare_change_history = {}
         self.sim = sim
-        self.quartiles = []
 
 
     def update_tax_brackets(self):
@@ -36,9 +35,9 @@ class DynamicTaxPolicy:
         adjusted_tax_rates = [max(0, rate + adj) for rate, adj in zip(self.base_tax_rates, adjustment_factors)]
         
         # Define income quartiles and assign adjusted tax rates
-        self.quartiles = np.percentile(income_values, [25, 50, 75, 100])
-        print("Calculated quartiles:", self.quartiles)  # Print the quartiles for reference
-        self.tax_brackets = [(self.quartiles[i], adjusted_tax_rates[i]) for i in range(len(self.quartiles))]
+        quartiles = np.percentile(income_values, [25, 50, 75, 100])
+        print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
+        self.tax_brackets = [(quartiles[i], adjusted_tax_rates[i]) for i in range(len(quartiles))]
 
     def calculate_tax(self, agent_idx):
         income = self.pretax_incomes[agent_idx - 1]

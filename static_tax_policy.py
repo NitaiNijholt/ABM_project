@@ -11,19 +11,18 @@ class StaticTaxPolicy:
         self.pretax_incomes = []
         self.posttax_incomes = []
         self.sim = sim
-        self.quartiles = []
         # print("Initial pretax incomes:", self.pretax_incomes)
 
     def calculate_tax_brackets(self):
         self.pretax_incomes = [agent.income for agent in self.grid.agents.values()]
         self.posttax_incomes = self.pretax_incomes.copy()
         # Determine income brackets based on quantiles
-        self.quartiles = np.percentile(self.pretax_incomes, [25, 50, 75, 100])
+        quartiles = np.percentile(self.pretax_incomes, [25, 50, 75, 100])
         # print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
         tax_rates = [0.1, 0.2, 0.3, 0.4]
 
         # Create a list of (upper_bound, tax_rate) tuples
-        tax_brackets = [(self.quartiles[i], tax_rates[i]) for i in range(len(self.quartiles))]
+        tax_brackets = [(quartiles[i], tax_rates[i]) for i in range(len(quartiles))]
         # print("Updated tax brackets based on pretax incomes:", tax_brackets)
         return tax_brackets
 
