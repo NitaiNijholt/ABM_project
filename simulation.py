@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import csv
-from agent import Agent
+from agent_dynamic_market import Agent
 from grid import Grid
 from market import Market
 from orderbook import OrderBooks
