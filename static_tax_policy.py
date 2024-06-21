@@ -23,7 +23,7 @@ class StaticTaxPolicy:
         # Determine income brackets based on quantiles
         quartiles = np.percentile(self.pretax_incomes, [25, 50, 75, 100])
         # print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
-        tax_rates = [0.1, 0.2, 0.3, 0.4]
+        tax_rates = [0.2, 0.3, 0.4, 0.5]
 
         # Create a list of (upper_bound, tax_rate) tuples
         tax_brackets = [(quartiles[i], tax_rates[i]) for i in range(len(quartiles))]

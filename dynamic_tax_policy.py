@@ -8,7 +8,7 @@ class DynamicTaxPolicy:
         self.discount_rate = discount_rate
         self.pretax_incomes = []
         self.posttax_incomes = []
-        self.base_tax_rates = [0.1, 0.2, 0.3, 0.4]
+        self.base_tax_rates = [0.2, 0.3, 0.4, 0.5]
         self.tax_brackets = []
         self.previous_welfare = 0
         self.total_discounted_welfare_change = 0
@@ -28,7 +28,7 @@ class DynamicTaxPolicy:
         # Check if the standard deviation of income is above the threshold
         if current_std_dev > self.std_dev_threshold:
             # Adjust tax rates based on quartiles: more for higher wealth, less for lower wealth
-            adjustment_factors = [-0.1, -0.05, 0.05, 0.1]
+            adjustment_factors = [-0.2, -0.1, 0.1, 0.2]
         
         # Calculate adjusted tax rates
         adjusted_tax_rates = [max(0, rate + adj) for rate, adj in zip(self.base_tax_rates, adjustment_factors)]
