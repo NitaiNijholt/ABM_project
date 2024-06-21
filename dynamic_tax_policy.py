@@ -87,15 +87,24 @@ class DynamicTaxPolicy:
         self.sim.total_discounted_welfare_change[self.sim.t] = self.total_discounted_welfare_change
         print(f"Total discounted welfare change at step {self.sim.t}: {self.total_discounted_welfare_change}")
 
-    def gini_coefficient(self, use_posttax=True):
+    def gini_coefficient(self):
         # Calculate the Gini coefficient
-        incomes = np.array(self.posttax_incomes if use_posttax else self.pretax_incomes)
-        n = len(incomes)
-        income_matrix = np.abs(np.subtract.outer(incomes, incomes))
-        gini = income_matrix.sum() / (2 * n * np.sum(incomes))
+        wealths = list(agent.wealth for agent in self.grid.agents.values())
+        n = len(wealths)
+        wealth_matrix = np.abs(np.subtract.outer(wealths, wealths))
+        gini = wealth_matrix.sum() / (2 * n * np.sum(wealths))
         print(f"Calculated Gini Coefficient: {gini}") 
         return gini
 
+    # def gini_coefficient(self, use_posttax=True):
+    #     # Calculate the Gini coefficient
+    #     incomes = np.array(self.posttax_incomes if use_posttax else self.pretax_incomes)
+    #     n = len(incomes)
+    #     income_matrix = np.abs(np.subtract.outer(incomes, incomes))
+    #     gini = income_matrix.sum() / (2 * n * np.sum(incomes))
+    #     print(f"Calculated Gini Coefficient: {gini}") 
+    #     return gini
+    
     def calculate_equality(self):
         # Calculate the equality measure using the Gini index
         n = len(self.grid.agents)
@@ -105,9 +114,18 @@ class DynamicTaxPolicy:
         print(f"Calculated Equality Measure: {eq_value}")
         return eq_value
 
-    def calculate_productivity(self, use_posttax=True):
+    # def calculate_productivity(self, use_posttax=True):
+    #     # Sum of all incomes which represents the total productivity
+    #     total_productivity = np.sum(self.posttax_incomes if use_posttax else self.pretax_incomes)
+    #     self.sim.productivity[self.sim.t] = total_productivity
+    #     print(f"Total Productivity: {total_productivity}")
+    #     return total_productivity
+
+    def calculate_productivity(self):
         # Sum of all incomes which represents the total productivity
-        total_productivity = np.sum(self.posttax_incomes if use_posttax else self.pretax_incomes)
+        # print("Wealths:", self.grid.agents.values.wealth)
+        # print("Wealths:", self.grid.agents.wealth)
+        total_productivity = np.sum(agent.wealth for agent in self.grid.agents.values())
         self.sim.productivity[self.sim.t] = total_productivity
         print(f"Total Productivity: {total_productivity}")
         return total_productivity
