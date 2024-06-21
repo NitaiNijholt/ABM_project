@@ -60,6 +60,7 @@ class Market:
         # Process the order
         buyer.wealth -= wood_to_buy * self.wood_rate + stone_to_buy * self.stone_rate
         buyer.income -= wood_to_buy * self.wood_rate + stone_to_buy * self.stone_rate
+        buyer.income = max(0, buyer.income)
         buyer.wood += wood_to_buy
         self.wood -= wood_to_buy
         buyer.stone += stone_to_buy

@@ -172,12 +172,12 @@ class Simulation:
         # print(f"Number of wood resources: {num_wood}")
         # print(f"Number of stone resources: {num_stone}")
 
-        for _ in range(self.resource_spawn_rate * (self.num_resources - num_stone)):
+        for _ in range(int(self.resource_spawn_rate * (self.num_resources - num_stone))):
             stone_position = self.get_random_position()
             if self.grid.if_no_houses(stone_position):
                 self.grid.resource_matrix_stone[stone_position] += 1
 
-        for _ in range(self.resource_spawn_rate * (self.num_resources - num_wood)):
+        for _ in range(int(self.resource_spawn_rate * (self.num_resources - num_wood))):
             wood_position = self.get_random_position()
             if self.grid.if_no_houses(wood_position):
                 self.grid.resource_matrix_wood[wood_position] += 1
