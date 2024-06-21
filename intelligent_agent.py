@@ -151,9 +151,9 @@ class Agent:
     def update_fitness(self):
         house_income_factor = 10
         fitness = np.sum([
-            # self.wealth, 
-            # self.stone * self.market.stone_rate / 2,
-            # self.wood * self.market.wood_rate / 2,
+            self.wealth, 
+            self.stone * self.market.stone_rate / 2,
+            self.wood * self.market.wood_rate / 2,
             house_income_factor * np.sum(self.grid.house_incomes[house.position] for house in self.houses) * self.income_per_timestep
         ])  / (self.sim.t - self.creation_time)
         self.fitness = fitness
@@ -215,7 +215,7 @@ class Agent:
             self.current_action = 'gather'
             succeeded = True
         
-        # if not succeeded:
+        # if not succeeded
         #     self.fitness *= 0.95
         
         
