@@ -193,6 +193,7 @@ class Agent:
         self.income = income_collected  # Track the income
 
     def step(self):
+        self.collect_income()
         # print(f"Agent {self.agent_id} at step {self.sim.t}: Wealth={self.wealth}, Wood={self.wood}, Stone={self.stone}")
         if self.currently_building_timesteps > 0:
             self.currently_building_timesteps += 1
@@ -216,7 +217,6 @@ class Agent:
             action()
             self.current_action = action.__name__
             
-        self.collect_income()
         self.wealth_over_time.append(self.wealth)
         self.houses_over_time.append(len(self.houses))
         self.bought_at_timesteps.append(0)
@@ -302,6 +302,7 @@ class Agent:
 
         age = self.sim.t - self.creation_time
         total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        total_income = self.posttax_extra_income(total_income)
         earning_rate = total_income / self.required_building_time
         return earning_rate
 
@@ -325,6 +326,7 @@ class Agent:
         age = self.sim.t - self.creation_time
         required_time = self.required_building_time + 1
         gross_income = self.income_per_timestep * (self.guessed_lifetime - age - required_time)
+        gross_income = self.posttax_extra_income(gross_income)
         return (gross_income - cost) / required_time
 
     def earning_rate_selling(self):
@@ -334,6 +336,7 @@ class Agent:
         if self.wood == 0 and self.stone == 0:
             return 0
         earning_rate = self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
+        earning_rate = self.posttax_extra_income(earning_rate)
         return earning_rate
 
     def earning_rate_gathering(self):
@@ -344,6 +347,7 @@ class Agent:
             return 0
 
         earning_rate = self.market.wood_rate * max(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * max(1, self.grid.resource_matrix_stone[self.position])
+        earning_rate = self.posttax_extra_income(earning_rate)
         return earning_rate
 
     def earning_rate_random_moving(self):
@@ -353,6 +357,7 @@ class Agent:
         if (self.grid.house_cost[0] <= self.wood and self.grid.house_cost[1] <= self.stone) and self.grid.house_matrix[self.position] != 0:
             age = self.sim.t - self.creation_time
             total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time - 1)
+            total_income = self.posttax_extra_income(total_income)
             earning_rate = total_income / (self.required_building_time + 1)
             return earning_rate
         
@@ -366,26 +371,26 @@ class Agent:
         for pos in positions_to_check:
             wood, stone = self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]
             required_time = min(wood, stone) + 1
-            earning_rate = (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
-        return earning_rate
+            earning_rate += self.posttax_extra_income(self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+        return earning_rate / len(positions_to_check)
 
     def earning_rate_moving(self):
         """
         Calculate the earning rate of moving to a target neighboring cell.
         """
-
         position = self.best_position
         # If the agent has enough resources and the cell is available for building, the agent should go there and build a house
         if self.grid.house_cost[0] <= self.wood and self.grid.house_cost[1] <= self.stone and self.grid.house_matrix[position] < self.grid.max_house_num:
             age = self.sim.t - self.creation_time
             total_income = self.income_per_timestep * self.grid.house_incomes[position] * (self.guessed_lifetime - age - self.required_building_time - 1)
+            total_income = self.posttax_extra_income(total_income)
             earning_rate = total_income / (self.required_building_time + 1)
             return earning_rate
         # Otherwise, the agent should move to the target cell and gather resources
         else:
             wood, stone = self.grid.resource_matrix_wood[position], self.grid.resource_matrix_stone[position]
             required_time = min(wood, stone) + 1
-            earning_rate = (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+            earning_rate = self.posttax_extra_income(self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
 
         return earning_rate
 
@@ -416,3 +421,34 @@ class Agent:
             required_wood, required_stone = self.grid.house_cost[0] - self.wood, self.grid.house_cost[1] - self.stone
             best_position = max(positions, key=lambda pos: min(self.grid.resource_matrix_wood[pos], required_wood) + min(self.grid.resource_matrix_stone[pos], required_stone))
         return best_position
+
+    def posttax_extra_income(self, extra_income):
+        """
+        Calculate the post-tax extra income given the pre-tax extra income.
+        """
+        tax_brackets = self.sim.tax_policy.tax_brackets
+        # First, calculate the post-tax house income
+        tax1 = 0
+        previous_bound = 0
+        for upper_bound, tax_rate in tax_brackets:
+            if self.income > previous_bound:
+                taxable_income = min(self.income - previous_bound, upper_bound - previous_bound)
+                tax1 += taxable_income * tax_rate
+                previous_bound = upper_bound
+            else:
+                break
+        # posttax_house_income = self.income - tax1
+
+        # Then, calculate the total post-tax income
+        tax2 = 0
+        previous_bound = 0
+        for upper_bound, tax_rate in tax_brackets:
+            if extra_income > previous_bound:
+                taxable_income = min(extra_income - previous_bound, upper_bound - previous_bound)
+                tax2 += taxable_income * tax_rate
+                previous_bound = upper_bound
+            else:
+                break
+        # total_posttax_income = self.income + extra_income - tax2
+
+        return extra_income + tax1 - tax2

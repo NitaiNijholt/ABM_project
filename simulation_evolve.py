@@ -3,18 +3,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import csv
-# from agent_dynamic_market import Agent
-from agent import Agent
+from intelligent_agent import Agent
 from grid import Grid
 from market import Market
 from orderbook import OrderBooks
 from dynamic_tax_policy import DynamicTaxPolicy as TaxPolicy
+from scipy.stats import gamma, lognorm
 
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
                  lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time=5, 
-                 save_file_path=None, tax_period=30, income_per_timestep=1, show_time=False):
+                 save_file_path=None, tax_period=30, lifetime_distribution='gamma', income_per_timestep=1, show_time=False):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """
@@ -45,11 +45,25 @@ class Simulation:
         self.productivity = {}
         self.social_welfare = {}
         self.total_discounted_welfare_change = {}
+        self.mutation_probability = 0.01
+        self.k = 10
 
-        # Initialize Dynamic market
-        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
-        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time)
-        
+        self.lifetime_distribution = lifetime_distribution
+
+        self.agent_dict = {}
+        self.action_failure = 0
+
+        self.moving = 0
+        self.failed_moving = 0
+        self.gathering = 0
+        self.failed_gathering = 0
+        self.buy = 0
+        self.failed_buy = 0
+        self.sell = 0
+        self.failed_sell = 0
+        self.build = 0
+        self.failed_build = 0
+
         # Initialize Static price market
         self.market = Market(wood_rate, stone_rate)
         self.tax_policy = None
@@ -74,8 +88,88 @@ class Simulation:
         with open(file_path, 'r') as file:
             distribution_data = json.load(file)
         return distribution_data
+    
+    def line_recombination(self, mating_pool):
+        n_offspring = 1
+        offspring =  np.zeros((n_offspring, len(mating_pool[0])))
 
-    def make_agent(self, agent_id):
+        for individual in offspring:
+            alpha = np.random.uniform(-0.25, 1.25)
+            for i in range(len(individual)):
+                individual[i] = mating_pool[0][i] + alpha * (mating_pool[1][i] - mating_pool[0][i])
+        return offspring
+    
+    def limits(self, weight):
+        if weight > 1:
+            return 1
+        if weight < -1:
+            return -1
+        return weight
+    
+    def tournament(self):
+        '''
+        Implements the tournament selection algorithm. 
+        It draws randomly with replacement k individuals and returns the fittest individual.
+        '''
+
+        # Select k random indexes from the population
+        k_indexes = np.random.randint(1, self.num_agents + 1, self.k)
+
+        # # Extract the agent_ids corresponding to the selected indexes
+        # selected_agents = [self.grid.agents[index] for index in k_indexes]
+        # print(selected_agents)
+        winner = max(k_indexes, key=lambda key: self.agent_dict[key])
+        return self.grid.agents[winner]
+
+    def mutate(self, agent):
+
+        # Mutates the offspring
+        for i in range(len(agent)):
+            if np.random.uniform() <= self.mutation_probability:
+                agent[i] = np.random.uniform(-1, 1)
+                # individual[i] -= np.random.normal(1, self.mutation_stepsize)
+        return agent
+
+    def reproduce(self):
+        total_offspring = []
+        for reproduction in range(int(self.num_agents / 2)):
+    
+            # Make mating pool according to tournament selection
+            mating_pool = np.array([self.tournament() for _ in range(2)])
+
+            parent_1, parent_2 = mating_pool[0], mating_pool[1]
+            offspring = self.line_recombination([parent_1.network, parent_2.network])
+
+            for new_agent in offspring:
+                # Mutates and ensures no weight is outside the range [-1, 1]
+                new_agent = self.mutate(new_agent)
+                # new_agent = [self.limits(weight) for weight in new_agent]
+                total_offspring.append(new_agent)
+                total_offspring.append(mating_pool[np.argmax(parent.fitness for parent in mating_pool)].network)
+        
+        # Kill old generation
+        agents = list(self.grid.agents.values())
+        for agent in agents:
+            agent.die()
+
+        # Place new generation
+        for agent_id, new_agent in enumerate(total_offspring):
+            self.make_agent(agent_id + 1, network=new_agent)
+
+    def generate_lifetime(self):
+        """
+        Generate a lifetime based on the given distribution.
+        """
+        if self.lifetime_distribution == 'gamma':
+            scale = self.lifetime_std**2 / self.lifetime_mean
+            shape = self.lifetime_mean / scale
+            return int(gamma.rvs(a=shape, scale=scale, size=1)[0])
+        elif self.lifetime_distribution == 'lognormal':
+            sigma = np.sqrt(np.log(1 + (self.lifetime_std / self.lifetime_mean)**2))
+            mu = np.log(self.lifetime_mean) - sigma**2 / 2
+            return int(lognorm.rvs(s=sigma, scale=np.exp(mu), size=1)[0])
+
+    def make_agent(self, agent_id, network=None, position=None):
         """
         Note that on a grid cell, there can now only be 1 agent!
         """ 
@@ -85,11 +179,9 @@ class Simulation:
 
         common_zeros = np.where(mask_agent & mask_house)
 
-        if common_zeros[0].size > 0:
+        if common_zeros[0].size > 0 and not position:
             random_index = np.random.choice(len(common_zeros[0]))
             position = (common_zeros[0][random_index], common_zeros[1][random_index])
-        else:
-            return
         
         # Sample wealth
         if self.wealth_distribution:
@@ -101,9 +193,10 @@ class Simulation:
             
         self.initial_wealth.append(wealth)
         
-        agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep)
+        agent = Agent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep, network=network)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
+        self.agent_dict[agent_id] = 999999999
 
     def get_random_position(self):
         x = np.random.randint(self.grid.width)
@@ -133,33 +226,45 @@ class Simulation:
             self.tax_policy.apply_taxes()
         self.grid.update_house_incomes()
         
-        # Buggy so commented out
-        # if self.t % self.agent_spawn_period == 0:
-        #     self.spawn_agents()
-        
-        # Update order books with current agents' state
-        self.wood_order_book.agents_dict = self.get_agents_dict()
-        self.stone_order_book.agents_dict = self.get_agents_dict()
-        
-        # Increment timestep and remove expired orders
-        self.wood_order_book.increment_timestep()
-        self.stone_order_book.increment_timestep()
-        
-        # # Update agents from order books after trades (wealth & resources)
-        self.update_agents_from_order_books()
-
         # Update market prices
         self.market.update_price()
+
         
     def run(self, show_time=False):
+        epochs = 100
+
+
         self.show_time = show_time
         self.tax_policy = TaxPolicy(self.grid, self)
-        for t in range(self.n_timesteps):
-            if self.show_time:
-                print(f"\nTimestep {t+1}:")
-            self.timestep()
+        with open('agents.csv', 'w') as file:
+            self.writer = csv.writer(file)
+            for epoch in range(epochs):
+
+                t_max = self.generate_lifetime()
+                for t in range(t_max):
+                    if self.show_time:
+                        print(f"\nTimestep {t+1}:")
+                    self.timestep()
+                
+                print(f"Success rate: {1-(self.action_failure / self.num_agents / t_max)}")
+                print(f'{np.around((self.build+self.failed_build) / self.num_agents / t_max, 3)}, {np.around((self.gathering+self.failed_gathering) / self.num_agents / t_max, 3)}, {np.around((self.moving+self.failed_moving) / self.num_agents / t_max, 3)}, {np.around((self.buy+self.failed_buy) / self.num_agents / t_max, 3)}, {np.around((self.sell+self.failed_sell) / self.num_agents / t_max, 3)}')
+                self.action_failure = 0
+                self.moving = 0
+                self.failed_moving = 0
+                self.gathering = 0
+                self.failed_gathering = 0
+                self.buy = 0
+                self.failed_buy = 0
+                self.sell = 0
+                self.failed_sell = 0
+                self.build = 0
+                self.failed_build = 0
+                self.reproduce()
+                print(f"########################################## NEW EPOCH {epoch + 1} ############################################")
+
+
         # Save the results to a CSV file after the simulation
-        self.save_results(self.save_file_path)
+        # self.save_results(self.save_file_path)
 
     def initialize_resources(self):
         """
@@ -201,15 +306,6 @@ class Simulation:
     def get_agents_dict(self):
         return {agent_id: {'wealth': agent.wealth, 'wood': agent.wood, 'stone': agent.stone} 
                 for agent_id, agent in self.grid.agents.items()}
-
-    def update_agents_from_order_books(self):
-        for agent_id, agent in self.grid.agents.items():
-            if agent_id in self.wood_order_book.agents_dict:
-                agent.wealth = self.wood_order_book.agents_dict[agent_id]['wealth']
-                agent.wood = self.wood_order_book.agents_dict[agent_id]['wood']
-            if agent_id in self.stone_order_book.agents_dict:
-                agent.wealth = self.stone_order_book.agents_dict[agent_id]['wealth']
-                agent.stone = self.stone_order_book.agents_dict[agent_id]['stone']
 
     def save_results(self, file_path):
         df = pd.DataFrame(self.data)
@@ -348,8 +444,8 @@ class Simulation:
 
     def plot_total_discounted_welfare_change_over_time(self):
         timesteps = list(self.total_discounted_welfare_change.keys())
-        total_discounted_welfare_change = list(self.total_discounted_welfare_change.values())
-        plt.plot(timesteps, total_discounted_welfare_change)
+        total_discounted_welfare_change_values = list(self.total_discounted_welfare_change.values())
+        plt.plot(timesteps, total_discounted_welfare_change_values)
         plt.xlabel('Timesteps')
         plt.ylabel('Total Discounted Welfare Change')
         plt.title('Total Discounted Welfare Change Over Time')
