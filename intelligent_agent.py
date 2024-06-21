@@ -42,6 +42,7 @@ class Agent:
         """
         self.agent_id = agent_id
         self.position = position
+        self.initial_wealth = wealth
         self.wealth = max(wealth, 0)
 
         self.fitness = wealth + stone * market.stone_rate + wood * market.wood_rate
@@ -77,10 +78,12 @@ class Agent:
         self.punish_buy = 1
         self.punish_successful_move = 1
 
+        self.successful_actions = 0
+
 
         self.input_size = 34
         self.primary_output_size = 9
-        self.hidden_size = 20
+        self.hidden_size = 40
         self.n_hidden_layers = 2
 
         total_parameters = (
@@ -156,13 +159,9 @@ class Agent:
 
 
     def update_fitness(self):
-        house_income_factor = 10
         fitness = np.sum([
-            self.wealth, 
-            self.stone * self.market.stone_rate / 5,
-            self.wood * self.market.wood_rate / 5,
-            house_income_factor * np.sum(self.grid.house_incomes[house.position] for house in self.houses) * self.income_per_timestep
-        ])  / (self.sim.t - self.creation_time)
+            self.wealth - self.initial_wealth, 
+        ]) * ((self.successful_actions  / (self.sim.t - self.creation_time)))
         self.fitness = fitness
         self.sim.agent_dict[self.agent_id] = fitness
 
@@ -219,7 +218,6 @@ class Agent:
             self.current_action = 'gather'
             self.gathered_at_timesteps.append(1)
             succeeded = True
-            self.sim.gathering += 1
 
         if self.grid.resource_matrix_stone[self.position] > 0:
             self.stone += 1
@@ -227,13 +225,15 @@ class Agent:
             self.gathered_at_timesteps.append(1)
             self.current_action = 'gather'
             succeeded = True
-            self.sim.gathering += 1
         
         if not succeeded:
             self.fitness *= self.punish_gather
             self.current_action = 'failed gather'
             self.sim.action_failure += 1
             self.sim.failed_gathering += 1
+        else:
+             self.sim.gathering += 1
+             self.successful_actions += 1
         
         
         self.gathered_at_timesteps.append(0)
@@ -265,6 +265,7 @@ class Agent:
             self.currently_building_timesteps = 1
             self.current_action = 'start building'
             self.sim.build += 1
+            self.successful_actions += 1
         #     self.fitness += 20
         else:
             self.fitness *= self.punish_build
@@ -304,7 +305,7 @@ class Agent:
                 self.buy,
                 self.sell
             ]
-            
+
 
             actions[action]()
             # print(f"Agent {self.agent_id} does {self.current_action}, ({action})")
@@ -315,7 +316,6 @@ class Agent:
         self.bought_at_timesteps.append(0)
         self.sold_at_timesteps.append(0)
         self.taxes_paid_at_timesteps.append(0)
-        self.update_fitness()
     
 
     def die(self):
@@ -337,6 +337,7 @@ class Agent:
 
         for house in self.houses:
             self.grid.house_matrix[house.position] -= 1
+            
 
 
     def buy(self):
@@ -352,6 +353,7 @@ class Agent:
 
             self.market.add_buyer(self, wood_to_buy, stone_to_buy)
             self.sim.buy += 1
+            self.successful_actions += 1
         #     self.fitness += 10
         
         else:
@@ -368,6 +370,7 @@ class Agent:
             self.market.add_seller(self, self.wood, self.stone)
             self.current_action = 'sell'
             self.sim.sell += 1
+            self.successful_actions += 1
         else:
             self.fitness *= self.punish_sell
             self.current_action = 'failed sell'

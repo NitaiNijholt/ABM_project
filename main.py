@@ -1,5 +1,5 @@
 from grid import Grid
-from simulation import Simulation
+from simulation_evolve import Simulation
 import time
 import matplotlib.pyplot as plt
 
@@ -8,17 +8,17 @@ start = time.time()
 
 # +
 # Params
-height = 50
-width = 50
-num_agents = 100
+height = 80
+width = 80
+num_agents = 500
 n_timesteps = 100
-num_resources = 500
+num_resources = 15000
 house_cost = (2, 2)  # Define the cost of building a house
-lifetime_mean = 100
-lifetime_std = 10
+lifetime_mean = 50
+lifetime_std = 1
 
-wood_rate = 1.25  # Define the initial rate of wood
-stone_rate = 1.25  # Define the initial rate of stone
+wood_rate = 2  # Define the initial rate of wood
+stone_rate = 2  # Define the initial rate of stone
 income_per_timestep = 1
 
 # Initialize grid

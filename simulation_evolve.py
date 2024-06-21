@@ -45,8 +45,8 @@ class Simulation:
         self.productivity = {}
         self.social_welfare = {}
         self.total_discounted_welfare_change = {}
-        self.mutation_probability = 0.01
-        self.k = 10
+        self.mutation_probability = 0.001
+        self.k = 2
 
         self.lifetime_distribution = lifetime_distribution
 
@@ -89,8 +89,7 @@ class Simulation:
             distribution_data = json.load(file)
         return distribution_data
     
-    def line_recombination(self, mating_pool):
-        n_offspring = 1
+    def line_recombination(self, mating_pool, n_offspring=2):
         offspring =  np.zeros((n_offspring, len(mating_pool[0])))
 
         for individual in offspring:
@@ -133,19 +132,24 @@ class Simulation:
     def reproduce(self):
         total_offspring = []
         for reproduction in range(int(self.num_agents / 2)):
+            if np.random.rand() <= 0.05:
+                n_offspring = 2
+            else:
+                n_offspring = 1
     
             # Make mating pool according to tournament selection
             mating_pool = np.array([self.tournament() for _ in range(2)])
 
             parent_1, parent_2 = mating_pool[0], mating_pool[1]
-            offspring = self.line_recombination([parent_1.network, parent_2.network])
+            offspring = self.line_recombination([parent_1.network, parent_2.network], n_offspring)
 
             for new_agent in offspring:
                 # Mutates and ensures no weight is outside the range [-1, 1]
                 new_agent = self.mutate(new_agent)
                 # new_agent = [self.limits(weight) for weight in new_agent]
                 total_offspring.append(new_agent)
-                total_offspring.append(mating_pool[np.argmax(parent.fitness for parent in mating_pool)].network)
+                if n_offspring == 1:
+                    total_offspring.append(mating_pool[np.argmax(parent.fitness for parent in mating_pool)].network)
         
         # Kill old generation
         agents = list(self.grid.agents.values())
@@ -231,7 +235,7 @@ class Simulation:
 
         
     def run(self, show_time=False):
-        epochs = 100
+        epochs = 25
 
 
         self.show_time = show_time
@@ -245,6 +249,8 @@ class Simulation:
                     if self.show_time:
                         print(f"\nTimestep {t+1}:")
                     self.timestep()
+                for agent in self.grid.agents.values():
+                    agent.update_fitness()
                 
                 print(f"Success rate: {1-(self.action_failure / self.num_agents / t_max)}")
                 print(f'{np.around((self.build+self.failed_build) / self.num_agents / t_max, 3)}, {np.around((self.gathering+self.failed_gathering) / self.num_agents / t_max, 3)}, {np.around((self.moving+self.failed_moving) / self.num_agents / t_max, 3)}, {np.around((self.buy+self.failed_buy) / self.num_agents / t_max, 3)}, {np.around((self.sell+self.failed_sell) / self.num_agents / t_max, 3)}')
@@ -367,6 +373,7 @@ class Simulation:
         plt.ylabel('Frequency')
         plt.title('Distribution of Agent Actions')
         plt.grid(True)
+        plt.tight_layout()
         plt.show()
 
         # Plot aggregated income distribution over all timesteps
