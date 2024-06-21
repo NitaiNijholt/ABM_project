@@ -193,7 +193,7 @@ class Agent:
         self.income = income_collected  # Track the income
 
     def step(self):
-        self.income = sum(self.grid.house_incomes[house.position] for house in self.houses) * self.income_per_timestep
+        self.collect_income()
         # print(f"Agent {self.agent_id} at step {self.sim.t}: Wealth={self.wealth}, Wood={self.wood}, Stone={self.stone}")
         if self.currently_building_timesteps > 0:
             self.currently_building_timesteps += 1
@@ -217,7 +217,6 @@ class Agent:
             action()
             self.current_action = action.__name__
             
-        self.collect_income()
         self.wealth_over_time.append(self.wealth)
         self.houses_over_time.append(len(self.houses))
         self.bought_at_timesteps.append(0)
