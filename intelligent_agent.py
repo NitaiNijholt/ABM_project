@@ -292,7 +292,9 @@ class Agent:
             inputs = np.array(self.get_inputs()).astype(np.float32).reshape(1, -1)
             outputs = self.model.forward(inputs)
 
-            action = np.argmax(outputs)
+            # Sort actions based on output values in descending order
+            sorted_actions = np.argsort(outputs[0])[::-1]
+
 
             actions = [
                 self.build,
@@ -305,9 +307,48 @@ class Agent:
                 self.buy,
                 self.sell
             ]
+            
+            # Iterate through actions in the order of their desirability
+            for action in sorted_actions:
+                if action == 0:
+                    wood_cost, stone_cost = self.grid.house_cost
+                    if self.wood >= wood_cost and self.stone >= stone_cost and self.grid.house_matrix[self.position] < self.grid.max_house_num:
+                        self.build()
+                        break
+                elif action == 1:
+                    if self.grid.resource_matrix_wood[self.position] > 0 or self.grid.resource_matrix_stone[self.position] > 0:
+                        self.gather()
+                        break
+                elif action == 7:
+                    wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
+                    stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
+                    if self.wealth >= (wood_to_buy * self.market.wood_rate + stone_to_buy * self.market.stone_rate) and (wood_to_buy > 0 or stone_to_buy > 0):
+                        self.buy()
+                        break
+                elif action == 8:
+                    if self.wood > 0 or self.stone > 0:
+                        self.sell()
+                        break
+                else:
+                    x, y = self.position
+                    if action == 2 and self.grid.agent_matrix[(x, (y - 1) % self.grid.height)] == 0:
+                        self.move('up')
+                        break
+                    elif action == 3 and self.grid.agent_matrix[(x, (y + 1) % self.grid.height)] == 0:
+                        self.move('down')
+                        break
+                    elif action == 4 and self.grid.agent_matrix[((x - 1) % self.grid.width, y)] == 0:
+                        self.move('left')
+                        break
+                    elif action == 5 and self.grid.agent_matrix[((x + 1) % self.grid.width, y)] == 0:
+                        self.move('right')
+                        break
+                    elif action == 6:
+                        self.move('stay')
+                        break
+                
 
-
-            actions[action]()
+            # actions[action]()
             # print(f"Agent {self.agent_id} does {self.current_action}, ({action})")
         
         self.collect_income()
@@ -366,7 +407,7 @@ class Agent:
         """
         Agent sells all resources to the market.
         """
-        if self.wood > 0 and self.stone > 0:
+        if self.wood > 0 or self.stone > 0:
             self.market.add_seller(self, self.wood, self.stone)
             self.current_action = 'sell'
             self.sim.sell += 1

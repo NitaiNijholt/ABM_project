@@ -8,14 +8,14 @@ start = time.time()
 
 # +
 # Params
-height = 80
-width = 80
-num_agents = 500
+height = 50
+width = 50
+num_agents = 100
 n_timesteps = 100
-num_resources = 15000
+num_resources = 500
 house_cost = (2, 2)  # Define the cost of building a house
-lifetime_mean = 50
-lifetime_std = 1
+lifetime_mean = 200
+lifetime_std = 10
 
 wood_rate = 2  # Define the initial rate of wood
 stone_rate = 2  # Define the initial rate of stone
@@ -27,7 +27,7 @@ grid = Grid(width, height, house_cost)
 filepath = 'data/test_stuff_2.csv'
 
 # Initialize simulation
-sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, num_resources=num_resources, wood_rate=wood_rate, stone_rate=stone_rate, income_per_timestep=income_per_timestep, save_file_path=filepath, show_time=True)
+sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, num_resources=num_resources, wood_rate=wood_rate, lifetime_mean=lifetime_mean, stone_rate=stone_rate, income_per_timestep=income_per_timestep, save_file_path=filepath, show_time=True)
 
 # Run simulation
 sim.run()
