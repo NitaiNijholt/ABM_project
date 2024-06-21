@@ -8,8 +8,8 @@ from agent import Agent
 from grid import Grid
 from market import Market
 from orderbook import OrderBooks
-from static_tax_policy import StaticTaxPolicy as TaxPolicy
-# from dynamic_tax_policy import DynamicTaxPolicy as TaxPolicy
+# from static_tax_policy import StaticTaxPolicy as TaxPolicy
+from dynamic_tax_policy import DynamicTaxPolicy as TaxPolicy
 
 
 class Simulation:
