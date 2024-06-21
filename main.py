@@ -9,14 +9,14 @@ start = time.time()
 # Params
 height = 20
 width = 20
-num_agents = 10
+num_agents = 50
 
 
-n_timesteps = 300
+n_timesteps = 1000
 num_resources = 800
 house_cost = (2,2)  # Define the cost of building a house
 wood_rate = 2  # Define the exchange rate for wood to wealth
-stone_rate = 3  # Define the exchange rate for stone to wealth
+stone_rate = 2  # Define the exchange rate for stone to wealth
 
 # Initialize grid
 grid = Grid(width, height, house_cost)
