@@ -70,11 +70,18 @@ class Agent:
         self.welfare_gotten_last_time = 0
         self.income = 0  # New attribute to track income
 
+        self.punish_move = 1
+        self.punish_gather = 1
+        self.punish_build = 1
+        self.punish_sell = 1
+        self.punish_buy = 1
+        self.punish_successful_move = 1
+
 
         self.input_size = 34
         self.primary_output_size = 9
-        self.hidden_size = 40
-        self.n_hidden_layers = 1
+        self.hidden_size = 20
+        self.n_hidden_layers = 2
 
         total_parameters = (
             (self.input_size * self.hidden_size) + self.hidden_size +  # Input to first hidden layer
@@ -152,8 +159,8 @@ class Agent:
         house_income_factor = 10
         fitness = np.sum([
             self.wealth, 
-            self.stone * self.market.stone_rate / 2,
-            self.wood * self.market.wood_rate / 2,
+            self.stone * self.market.stone_rate / 5,
+            self.wood * self.market.wood_rate / 5,
             house_income_factor * np.sum(self.grid.house_incomes[house.position] for house in self.houses) * self.income_per_timestep
         ])  / (self.sim.t - self.creation_time)
         self.fitness = fitness
@@ -190,10 +197,15 @@ class Agent:
             self.grid.agent_matrix[self.position] = 0
             self.grid.agent_matrix[new_position] = self.agent_id
             self.position = new_position
+            self.sim.moving += 1
 
-        #     self.fitness *= 0.99
+            self.fitness *= self.punish_successful_move
         
-        # self.fitness *= 0.8
+        else:
+            self.current_action = 'failed move'
+            self.sim.action_failure += 1
+            self.sim.failed_moving += 1
+            self.fitness *= self.punish_move
 
     def gather(self):
         """
@@ -207,6 +219,7 @@ class Agent:
             self.current_action = 'gather'
             self.gathered_at_timesteps.append(1)
             succeeded = True
+            self.sim.gathering += 1
 
         if self.grid.resource_matrix_stone[self.position] > 0:
             self.stone += 1
@@ -214,9 +227,13 @@ class Agent:
             self.gathered_at_timesteps.append(1)
             self.current_action = 'gather'
             succeeded = True
+            self.sim.gathering += 1
         
-        # if not succeeded
-        #     self.fitness *= 0.95
+        if not succeeded:
+            self.fitness *= self.punish_gather
+            self.current_action = 'failed gather'
+            self.sim.action_failure += 1
+            self.sim.failed_gathering += 1
         
         
         self.gathered_at_timesteps.append(0)
@@ -233,7 +250,6 @@ class Agent:
             self.grid.houses[self.position] = [house]
         else:
             self.grid.houses[self.position].append(house)
-        self.current_action = 'build'
         # print(f"Agent {self.agent_id} completed building a house at {self.position}")
 
     def build(self):
@@ -247,9 +263,14 @@ class Agent:
             self.wood -= wood_cost
             self.stone -= stone_cost
             self.currently_building_timesteps = 1
+            self.current_action = 'start building'
+            self.sim.build += 1
         #     self.fitness += 20
-        # else:
-        #     self.fitness -= 2
+        else:
+            self.fitness *= self.punish_build
+            self.current_action = 'failed building'
+            self.sim.failed_build += 1
+            self.sim.action_failure += 1
 
     def collect_income(self):
         """
@@ -265,13 +286,12 @@ class Agent:
             if self.currently_building_timesteps == self.required_building_time:
                 self.currently_building_timesteps = 0
                 self.build_house()
+                self.current_action = 'continue building'
         else:
             inputs = np.array(self.get_inputs()).astype(np.float32).reshape(1, -1)
             outputs = self.model.forward(inputs)
-            
-            primary_outputs = outputs[:, :self.primary_output_size]
 
-            primary_action = np.argmax(primary_outputs).item()
+            action = np.argmax(outputs)
 
             actions = [
                 self.build,
@@ -286,8 +306,8 @@ class Agent:
             ]
             
 
-            actions[primary_action]()
-            print(f"Agent {self.agent_id} does {self.current_action}, ({primary_action})")
+            actions[action]()
+            # print(f"Agent {self.agent_id} does {self.current_action}, ({action})")
         
         self.collect_income()
         self.wealth_over_time.append(self.wealth)
@@ -299,17 +319,17 @@ class Agent:
     
 
     def die(self):
-        if self.fitness > 0:
-            if self.sim.writer:
-                consolidated_data = (
-                    self.wealth_over_time +
-                    self.houses_over_time +
-                    self.gathered_at_timesteps +
-                    self.bought_at_timesteps +
-                    self.sold_at_timesteps +
-                    self.taxes_paid_at_timesteps
-                )
-                self.sim.writer.writerow(np.concatenate(([self.fitness], np.array(self.network))))
+        # if self.fitness > 0:
+        #     if self.sim.writer:
+        #         consolidated_data = (
+        #             self.wealth_over_time +
+        #             self.houses_over_time +
+        #             self.gathered_at_timesteps +
+        #             self.bought_at_timesteps +
+        #             self.sold_at_timesteps +
+        #             self.taxes_paid_at_timesteps
+        #         )
+        #         self.sim.writer.writerow(np.concatenate(([self.fitness], np.array(self.network))))
 
         del self.grid.agents[self.agent_id]
         del self.sim.agent_dict[self.agent_id]
@@ -331,10 +351,14 @@ class Agent:
             self.current_action = 'buy'
 
             self.market.add_buyer(self, wood_to_buy, stone_to_buy)
+            self.sim.buy += 1
         #     self.fitness += 10
         
-        # else:
-        #     self.fitness *= 0.95
+        else:
+            self.fitness *= self.punish_buy
+            self.current_action = 'failed buy'
+            self.sim.action_failure += 1
+            self.sim.failed_buy += 1
 
     def sell(self):
         """
@@ -343,5 +367,9 @@ class Agent:
         if self.wood > 0 and self.stone > 0:
             self.market.add_seller(self, self.wood, self.stone)
             self.current_action = 'sell'
-        # else:
-        #     self.fitness *= 0.95
+            self.sim.sell += 1
+        else:
+            self.fitness *= self.punish_sell
+            self.current_action = 'failed sell'
+            self.sim.action_failure += 1
+            self.sim.failed_sell += 1
