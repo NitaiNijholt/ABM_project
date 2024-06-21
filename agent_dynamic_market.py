@@ -293,78 +293,70 @@ class Agent:
         # print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
 
     def update_prices(self, order_type):
-        order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
-        
-        building_earning_rate = self.earning_rate_building()
-        # max/min prices per resource for buying/selling 
+        assert order_type in ('sell', 'buy'), 'Takes in "buy" or "sell" only'
+
         age = self.sim.t - self.creation_time
         total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
         earning_rate = total_income / self.required_building_time
         m_price = earning_rate / sum(self.grid.house_cost)
-        ob_price_wood_bid, ob_price_wood_ask = self.sim.wood_order_book.check_price()
-        ob_price_stone_bid, ob_price_stone_ask = self.sim.stone_order_book.check_price()
-        assert order_type == 'sell' or order_type == 'buy', 'Takes in "buy" or "sell" only'
 
-        # Sell order
-        if order_type == 'sell':
-            if ob_price_wood_bid != None:
-                self.market.wood_rate = max(ob_price_wood_bid, m_price)
+        ob_prices = {
+            'wood': self.sim.wood_order_book.check_price(),
+            'stone': self.sim.stone_order_book.check_price()
+        }
+
+        for resource in ob_prices:
+            ob_price_bid, ob_price_ask = ob_prices[resource]
+            if order_type == 'sell':
+                if ob_price_bid is not None:
+                    rate = max(ob_price_bid, m_price)
+                else:
+                    rate = m_price
             else:
-                self.market.wood_rate = m_price
-                
-            if ob_price_stone_bid != None:
-                self.market_stone_rate = max(ob_price_stone_bid, m_price)
-            else:
-                self.market_stone_rate = m_price
-        # if not sell then buy order
-        else:
-            if ob_price_wood_ask != None:
-                self.market.wood_rate = min(ob_price_wood_ask, m_price)
-            else:
-                self.market.wood_rate = m_price
-            if ob_price_stone_ask != None:
-                self.market.stone_rate = min(ob_price_stone_ask, m_price)
-            else:
-                self.market.stone_rate = m_price
+                if ob_price_ask is not None:
+                    rate = min(ob_price_ask, m_price)
+                else:
+                    rate = m_price
+
+            if resource == 'wood':
+                self.market.wood_rate = rate
+            elif resource == 'stone':
+                self.market.stone_rate = rate
+
         
     def determine_price(self, order_type, resource):
         age = self.sim.t - self.creation_time
         total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
         earning_rate = total_income / self.required_building_time
         m_price = earning_rate / sum(self.grid.house_cost)
+
         ob_price_wood_bid, ob_price_wood_ask = self.sim.wood_order_book.check_price()
         ob_price_stone_bid, ob_price_stone_ask = self.sim.stone_order_book.check_price()
-        if order_type == 'buy':
-            if resource == 'wood':
-                if ob_price_wood_ask != None:
-                    self.market.wood_rate = min(ob_price_wood_ask, m_price)
-                    return self.market.wood_rate
-                else:
-                    self.market.wood_rate = m_price
-                    return self.market.wood_rate
-            if resource == 'stone':
-                if ob_price_stone_ask != None:
-                    self.market.stone_rate = min(ob_price_stone_ask, m_price)
-                    return self.market.stone_rate
-                else:
-                    self.market.stone_rate = m_price
-                    return self.market.stone_rate
-        elif order_type == 'sell':
-            if resource == 'wood':
-                if ob_price_wood_bid != None:
-                    self.market.wood_rate = max(ob_price_wood_bid, m_price)
-                    return self.market.wood_rate
-                else:
-                    self.market.wood_rate = m_price
-                    return self.market.wood_rate
 
-            if resource == 'stone':
-                if ob_price_stone_ask != None:
-                    self.market.stone_rate = max(ob_price_stone_bid, m_price)
-                    return self.market.stone_rate
-                else:
-                    self.market.stone_rate = m_price
-                    return self.market.stone_rate
+        if resource == 'wood':
+            ob_price_bid, ob_price_ask = ob_price_wood_bid, ob_price_wood_ask
+        elif resource == 'stone':
+            ob_price_bid, ob_price_ask = ob_price_stone_bid, ob_price_stone_ask
+        else:
+            return None
+
+        if order_type == 'buy':
+            if ob_price_ask is not None:
+                self.market.wood_rate = min(ob_price_ask, m_price) if resource == 'wood' else self.market.stone_rate
+                self.market.stone_rate = min(ob_price_ask, m_price) if resource == 'stone' else self.market.wood_rate
+            else:
+                self.market.wood_rate = m_price if resource == 'wood' else self.market.stone_rate
+                self.market.stone_rate = m_price if resource == 'stone' else self.market.wood_rate
+        elif order_type == 'sell':
+            if ob_price_bid is not None:
+                self.market.wood_rate = max(ob_price_bid, m_price) if resource == 'wood' else self.market.stone_rate
+                self.market.stone_rate = max(ob_price_bid, m_price) if resource == 'stone' else self.market.wood_rate
+            else:
+                self.market.wood_rate = m_price if resource == 'wood' else self.market.stone_rate
+                self.market.stone_rate = m_price if resource == 'stone' else self.market.wood_rate
+
+        return self.market.wood_rate if resource == 'wood' else self.market.stone_rate
+
         
     def earning_rate_building(self):
         """
@@ -408,7 +400,6 @@ class Agent:
         """
         # If agent does not have any resources, return 0
         if self.wood == 0 and self.stone == 0:
-            print()
             return 0
         self.update_prices('sell')
         earning_rate = self.market.wood_rate * self.wood + self.market.stone_rate * self.stone

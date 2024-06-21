@@ -49,32 +49,39 @@ class OrderBooks:
         return best_bid, best_ask
         
     def match_orders(self, order_type):
+        # Sort bids in descending order by price and asks in ascending order by price
+        self.bids.sort(key=lambda x: x['price'], reverse=True)
+        self.asks.sort(key=lambda x: x['price'])
+
         while self.bids and self.asks:
-            best_bid = max(self.bids, key=lambda x: x['price'])
-            best_ask = min(self.asks, key=lambda x: x['price'])
-            
+            best_bid = self.bids[0]
+            best_ask = self.asks[0]
+
             if best_bid['price'] >= best_ask['price']:
                 bid_agent = self.agents_dict[best_bid['agent_id']]
                 ask_agent = self.agents_dict[best_ask['agent_id']]
-                
+
                 if order_type == 'bid':
                     price = best_ask['price']
                 else:
                     price = best_bid['price']
-                
+
                 bid_agent['wealth'] -= price
-                bid_agent[self.resource_type] += 1  
-                
+                bid_agent[self.resource_type] += 1
+
                 ask_agent['wealth'] += price
                 ask_agent[self.resource_type] -= 1
-                
-                self.bids.remove(best_bid)
-                self.asks.remove(best_ask)
+
+                # Remove the best bid and ask from the lists
+                self.bids.pop(0)
+                self.asks.pop(0)
+
                 # Debug print
-#                 print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
+                # print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
                 self.transactions.append({'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
             else:
                 break
+
 
     def increment_timestep(self):
         self.current_timestep += 1
@@ -100,7 +107,10 @@ class OrderBooks:
             elif order_type == 'ask':
                 if agent[self.resource_type] >= 1:
                     agent[self.resource_type] -= 1
-            print(f"Order expired: Agent {order['agent_id']}, Price {order['price']}, Resource {self.resource_type}, Type {order_type}")
+            # Debug print
+#             print(f"Order expired: Agent {order['agent_id']}, Price {order['price']}, Resource {self.resource_type}, Type {order_type}")
             return True
         return False
+
+
 
