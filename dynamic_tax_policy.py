@@ -2,7 +2,7 @@ import numpy as np
 
 
 class DynamicTaxPolicy:
-    def __init__(self, grid, sim, std_dev_threshold=1000, discount_rate=0.95):
+    def __init__(self, grid, sim, std_dev_threshold=1, discount_rate=0.95):
         self.grid = grid
         self.std_dev_threshold = std_dev_threshold
         self.discount_rate = discount_rate
@@ -28,7 +28,7 @@ class DynamicTaxPolicy:
         # Check if the standard deviation of income is above the threshold
         if current_std_dev > self.std_dev_threshold:
             # Adjust tax rates based on quartiles: more for higher wealth, less for lower wealth
-            adjustment_factors = [-0.02, -0.01, 0.01, 0.02]
+            adjustment_factors = [-0.1, -0.05, 0.05, 0.1]
         
         # Calculate adjusted tax rates
         adjusted_tax_rates = [max(0, rate + adj) for rate, adj in zip(self.base_tax_rates, adjustment_factors)]
@@ -40,7 +40,7 @@ class DynamicTaxPolicy:
 
     def calculate_tax(self, agent_idx):
         income = self.pretax_incomes[agent_idx - 1]
-        # print(f"Agent {agent_idx} has pretax income {income}.")
+        print(f"Agent {agent_idx} has pretax income {income}.")
         tax = 0
         previous_bound = 0
         for upper_bound, tax_rate in self.tax_brackets:
