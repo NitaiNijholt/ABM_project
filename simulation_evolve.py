@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import csv
-from intelligent_agent import Agent
+from intelligent_agent_dynamic_market import Agent
 from grid import Grid
 from market import Market
 from orderbook import OrderBooks
@@ -51,18 +51,16 @@ class Simulation:
         self.lifetime_distribution = lifetime_distribution
 
         self.agent_dict = {}
-        self.action_failure = 0
 
         self.moving = 0
-        self.failed_moving = 0
         self.gathering = 0
-        self.failed_gathering = 0
         self.buy = 0
-        self.failed_buy = 0
         self.sell = 0
-        self.failed_sell = 0
         self.build = 0
-        self.failed_build = 0
+
+        # Initialize Dynamic market
+        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
+        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time)
 
         # Initialize Static price market
         self.market = Market(wood_rate, stone_rate)
@@ -132,7 +130,7 @@ class Simulation:
     def reproduce(self):
         total_offspring = []
         for reproduction in range(int(self.num_agents / 2)):
-            if np.random.rand() <= 0.05:
+            if np.random.rand() <= 0.1:
                 n_offspring = 2
             else:
                 n_offspring = 1
@@ -230,12 +228,23 @@ class Simulation:
             self.tax_policy.apply_taxes()
         self.grid.update_house_incomes()
         
+        # Update order books with current agents' state
+        self.wood_order_book.agents_dict = self.get_agents_dict()
+        self.stone_order_book.agents_dict = self.get_agents_dict()
+        
+        # Increment timestep and remove expired orders
+        self.wood_order_book.increment_timestep()
+        self.stone_order_book.increment_timestep()
+        
+        # # Update agents from order books after trades (wealth & resources)
+        self.update_agents_from_order_books()
+
         # Update market prices
         self.market.update_price()
 
         
     def run(self, show_time=False):
-        epochs = 25
+        epochs = 5
 
 
         self.show_time = show_time
@@ -252,8 +261,7 @@ class Simulation:
                 for agent in self.grid.agents.values():
                     agent.update_fitness()
                 
-                print(f"Success rate: {1-(self.action_failure / self.num_agents / t_max)}")
-                print(f'{np.around((self.build+self.failed_build) / self.num_agents / t_max, 3)}, {np.around((self.gathering+self.failed_gathering) / self.num_agents / t_max, 3)}, {np.around((self.moving+self.failed_moving) / self.num_agents / t_max, 3)}, {np.around((self.buy+self.failed_buy) / self.num_agents / t_max, 3)}, {np.around((self.sell+self.failed_sell) / self.num_agents / t_max, 3)}')
+                print(f'{np.around(self.build / self.num_agents / t_max, 3)}, {np.around(self.gathering / self.num_agents / t_max, 3)}, {np.around(self.moving / self.num_agents / t_max, 3)}, {np.around(self.buy / self.num_agents / t_max, 3)}, {np.around(self.sell / self.num_agents / t_max, 3)}')
                 self.action_failure = 0
                 self.moving = 0
                 self.failed_moving = 0
@@ -312,6 +320,15 @@ class Simulation:
     def get_agents_dict(self):
         return {agent_id: {'wealth': agent.wealth, 'wood': agent.wood, 'stone': agent.stone} 
                 for agent_id, agent in self.grid.agents.items()}
+
+    def update_agents_from_order_books(self):
+        for agent_id, agent in self.grid.agents.items():
+            if agent_id in self.wood_order_book.agents_dict:
+                agent.wealth = self.wood_order_book.agents_dict[agent_id]['wealth']
+                agent.wood = self.wood_order_book.agents_dict[agent_id]['wood']
+            if agent_id in self.stone_order_book.agents_dict:
+                agent.wealth = self.stone_order_book.agents_dict[agent_id]['wealth']
+                agent.stone = self.stone_order_book.agents_dict[agent_id]['stone']
 
     def save_results(self, file_path):
         df = pd.DataFrame(self.data)
