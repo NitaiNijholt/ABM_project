@@ -13,12 +13,12 @@ width = 100
 num_agents = 100
 n_timesteps = 100
 num_resources = 500
-house_cost = (2, 2)  # Define the cost of building a house
+house_cost = (10, 10)  # Define the cost of building a house
 lifetime_mean = 200
 lifetime_std = 10
 
-wood_rate = 2  # Define the initial rate of wood
-stone_rate = 2  # Define the initial rate of stone
+wood_rate = 10  # Define the initial rate of wood
+stone_rate = 10  # Define the initial rate of stone
 income_per_timestep = 1
 
 # Initialize grid
