@@ -100,6 +100,11 @@ class Agent:
         
         self.model = self.build_model()
         
+        self.order_limit = 3 
+        self.order_cooldown_period = 5
+        self.orders_placed = 0
+        self.last_order_time = -self.order_cooldown_period
+        
     def build_model(self):
         model = Network(self.input_size,
                         self.hidden_size,
@@ -108,6 +113,7 @@ class Agent:
                         self.network)
     
         return model
+    
     
     def get_inputs(self):
         initial_inputs = np.array([
@@ -379,6 +385,18 @@ class Agent:
             self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
 
 
+    def can_place_order(self):
+        """
+        Check if the agent can place an order based on the order limit and cooldown period.
+        """
+        current_timestep = self.sim.t
+        if self.orders_placed < self.order_limit:
+            return True
+        if current_timestep - self.last_order_time >= self.order_cooldown_period:
+            self.orders_placed = 0
+            return True
+        return False
+
     def place_order(self, order_books, resource_type, order_type, price, quantity):
         """
         Place a buy or sell order in the order book (market).
@@ -397,6 +415,10 @@ class Agent:
         quantity : int
             The amount of the resource to trade.
         """
+        if not self.can_place_order():
+            print(f"Agent {self.agent_id} cannot place more orders this period.")
+            return
+
         if resource_type not in order_books:
             raise ValueError(f"Invalid resource type: {resource_type}")
 
@@ -411,39 +433,12 @@ class Agent:
         else:
             raise ValueError(f"Invalid order type: {order_type}")
 
+        self.orders_placed += 1
+        self.last_order_time = self.sim.t
+
         # Log the order placement for debugging
-        # print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
+        print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
 
-    def update_prices(self, order_type):
-        assert order_type in ('sell', 'buy'), 'Takes in "buy" or "sell" only'
-
-        age = self.sim.t - self.creation_time
-        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
-        earning_rate = total_income / self.required_building_time
-        m_price = earning_rate / sum(self.grid.house_cost)
-
-        ob_prices = {
-            'wood': self.sim.wood_order_book.check_price(),
-            'stone': self.sim.stone_order_book.check_price()
-        }
-
-        for resource in ob_prices:
-            ob_price_bid, ob_price_ask = ob_prices[resource]
-            if order_type == 'sell':
-                if ob_price_bid is not None:
-                    rate = max(ob_price_bid, m_price)
-                else:
-                    rate = m_price
-            else:
-                if ob_price_ask is not None:
-                    rate = min(ob_price_ask, m_price)
-                else:
-                    rate = m_price
-
-            if resource == 'wood':
-                self.market.wood_rate = rate
-            elif resource == 'stone':
-                self.market.stone_rate = rate
 
         
     def determine_price(self, order_type, resource):
