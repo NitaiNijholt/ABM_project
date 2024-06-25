@@ -6,12 +6,14 @@ import matplotlib.pyplot as plt
 start = time.time()
 
 
+
+
 # +
 # Params
 height = 100
 width = 100
 num_agents = 100
-n_timesteps = 100
+n_timesteps = 5000
 num_resources = 500
 house_cost = (2, 2)  # Define the cost of building a house
 lifetime_mean = 200
@@ -55,3 +57,6 @@ sim.plot_results()
 #     print(f"\nAgent {id} can get {agent.expected_income_building()} income by building a house")
 #     print(f"Agent {id} can get {agent.expected_income_buying()} income by buying resources")
 #     print(f"Agent {id} can get {agent.expected_income_selling()} income by selling resources")
+# -
+
+
