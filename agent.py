@@ -40,6 +40,9 @@ class Agent(Agent_static_market):
         """
         super().__init__(sim, agent_id, position, grid, market, creation_time, wealth, wood, stone, lifetime_distribution, lifetime_mean, lifetime_std, income_per_timestep)
         self.order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
+        self.amount_orders = 0
+        self.limit = 4
+        
 
     def step(self):
         self.collect_income()
@@ -60,9 +63,20 @@ class Agent(Agent_static_market):
                 'sell': self.earning_rate_selling(),
                 'gather': self.earning_rate_gathering()
             }
-            # print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
-            action = actions[np.argmax(list(self.earning_rates.values()))]
-            # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
+#             print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
+            action_index = np.argmax(list(self.earning_rates.values()))
+            action = actions[action_index]
+            
+            if action.__name__ == 'buy':
+                if self.amount_orders >= self.limit:
+                    print('LIMIT HIT')
+                    earning_rates_values = list(self.earning_rates.values())
+                    earning_rates_values[action_index] = -10
+                    # Compute the argmax again to find the second highest value
+                    second_action_index = np.argmax(earning_rates_values)
+                    action = actions[second_action_index]                 
+            self.current_action = action.__name__
+#             print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             list_sell = ['build', 'sell', 'gather']
             if action.__name__ in list_sell:
                 self.update_prices('sell')
@@ -70,7 +84,7 @@ class Agent(Agent_static_market):
                 self.update_prices('buy')
                 
             action()
-            self.current_action = action.__name__
+#             self.current_action = action.__name__
             
         self.wealth_over_time.append(self.wealth)
         self.houses_over_time.append(len(self.houses))
@@ -112,8 +126,10 @@ class Agent(Agent_static_market):
         stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
         wood_price = self.determine_price('buy', 'wood')
         stone_price = self.determine_price('buy', 'stone')
+        
         self.place_order(self.order_books, 'wood', 'buy', price = wood_price, quantity = wood_to_buy)
         self.place_order(self.order_books, 'stone', 'buy', price = stone_price, quantity = stone_to_buy)
+        self.amount_orders += 1
 
     def sell(self):
         """
@@ -124,6 +140,7 @@ class Agent(Agent_static_market):
         stone_price = self.determine_price('sell', 'stone')
         self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
         self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
+        self.amount_orders += 1
 
     def place_order(self, order_books, resource_type, order_type, price, quantity):
         """
