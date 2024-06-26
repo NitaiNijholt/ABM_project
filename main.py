@@ -7,12 +7,12 @@ start = time.time()
 
 # +
 # Params
-height = 20
-width = 20
-num_agents = 10
+height = 40
+width = 40
+num_agents = 30
 
 
-n_timesteps = 300
+n_timesteps = 1000
 num_resources = 800
 house_cost = (2,2)  # Define the cost of building a house
 wood_rate = 2  # Define the exchange rate for wood to wealth
@@ -25,11 +25,13 @@ grid = Grid(width, height, house_cost)
 sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, num_resources=num_resources, wood_rate=wood_rate, stone_rate=stone_rate)
 
 # Run simulation
-sim.run()
+# sim.run()
 
 print(grid.house_matrix)
 
-sim.plot_results()
+sim.plot_results('PCA_test.csv')
+sim.save_results('PCA_test.csv')
+
 
 
 end = time.time()
