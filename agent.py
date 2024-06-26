@@ -112,8 +112,9 @@ class Agent(Agent_static_market):
         stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
         wood_price = self.determine_price('buy', 'wood')
         stone_price = self.determine_price('buy', 'stone')
-        self.place_order(self.order_books, 'wood', 'buy', price = wood_price, quantity = wood_to_buy)
-        self.place_order(self.order_books, 'stone', 'buy', price = stone_price, quantity = stone_to_buy)
+        if wood_price and stone_price and self.wealth >= wood_price * wood_to_buy + stone_price * stone_to_buy:
+            self.place_order(self.order_books, 'wood', 'buy', price = wood_price, quantity = wood_to_buy)
+            self.place_order(self.order_books, 'stone', 'buy', price = stone_price, quantity = stone_to_buy)
 
     def sell(self):
         """
@@ -122,8 +123,9 @@ class Agent(Agent_static_market):
         
         wood_price = self.determine_price('sell', 'wood')
         stone_price = self.determine_price('sell', 'stone')
-        self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
-        self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
+        if wood_price and stone_price:
+            self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
+            self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
 
     def place_order(self, order_books, resource_type, order_type, price, quantity):
         """
@@ -194,7 +196,9 @@ class Agent(Agent_static_market):
         
     def determine_price(self, order_type, resource):
         age = self.sim.t - self.creation_time
-        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        total_income = max(self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time), 0)
+        if total_income == 0:
+            return None
         earning_rate = total_income / self.required_building_time
         m_price = earning_rate / sum(self.grid.house_cost)
 

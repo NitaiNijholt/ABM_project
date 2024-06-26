@@ -3,8 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import csv
-# from agent_dynamic_market import Agent
 from agent import Agent
+# from agent_static_market import Agent_static_market as Agent
 from grid import Grid
 from market import Market
 from orderbook import OrderBooks
@@ -128,9 +128,9 @@ class Simulation:
             })
             agent.taxes_paid_at_timesteps.append(0)
         self.spawn_resources()
+        self.grid.update_house_incomes()
         if self.t % self.tax_period == 0:
             self.tax_policy.apply_taxes()
-        self.grid.update_house_incomes()
         
         # Update order books with current agents' state
         self.wood_order_book.agents_dict = self.get_agents_dict()

@@ -77,7 +77,8 @@ class OrderBooks:
                 self.asks.pop(0)
 
                 # Debug print
-                # print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
+                if price < 0:
+                    print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
                 self.transactions.append({'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
             else:
                 break
