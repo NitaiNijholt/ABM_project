@@ -47,8 +47,8 @@ class Simulation:
         self.total_discounted_welfare_change = {}
 
         # Initialize Dynamic market
-        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
-        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time)
+        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time, self.grid.agents)
+        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time, self.grid.agents)
         
         # Initialize Static price market
         self.market = Market(wood_rate, stone_rate)
@@ -113,6 +113,11 @@ class Simulation:
     def timestep(self):
         self.t += 1
         agents = list(self.grid.agents.values())
+        
+        # Update order books with current agents' state
+        self.wood_order_book.agents_dict = self.get_agents_dict()
+        self.stone_order_book.agents_dict = self.get_agents_dict()
+        
         for agent in agents:
             agent.step()
             self.data.append({
@@ -132,16 +137,9 @@ class Simulation:
             self.tax_policy.apply_taxes()
         self.grid.update_house_incomes()
         
-        # Update order books with current agents' state
-        self.wood_order_book.agents_dict = self.get_agents_dict()
-        self.stone_order_book.agents_dict = self.get_agents_dict()
-        
         # Increment timestep and remove expired orders
         self.wood_order_book.increment_timestep()
         self.stone_order_book.increment_timestep()
-        
-        # # Update agents from order books after trades (wealth & resources)
-        self.update_agents_from_order_books()
 
         # Update market prices
         self.market.update_price()
@@ -197,14 +195,14 @@ class Simulation:
         return {agent_id: {'wealth': agent.wealth, 'wood': agent.wood, 'stone': agent.stone} 
                 for agent_id, agent in self.grid.agents.items()}
 
-    def update_agents_from_order_books(self):
-        for agent_id, agent in self.grid.agents.items():
-            if agent_id in self.wood_order_book.agents_dict:
-                agent.wealth = self.wood_order_book.agents_dict[agent_id]['wealth']
-                agent.wood = self.wood_order_book.agents_dict[agent_id]['wood']
-            if agent_id in self.stone_order_book.agents_dict:
-                agent.wealth = self.stone_order_book.agents_dict[agent_id]['wealth']
-                agent.stone = self.stone_order_book.agents_dict[agent_id]['stone']
+#     def update_agents_from_order_books(self):
+#         for agent_id, agent in self.grid.agents.items():
+#             if agent_id in self.wood_order_book.agents_dict:
+#                 agent.wealth = self.wood_order_book.agents_dict[agent_id]['wealth']
+#                 agent.wood = self.wood_order_book.agents_dict[agent_id]['wood']
+#             if agent_id in self.stone_order_book.agents_dict:
+#                 agent.wealth = self.stone_order_book.agents_dict[agent_id]['wealth']
+#                 agent.stone = self.stone_order_book.agents_dict[agent_id]['stone']
 
     def save_results(self, file_path):
         df = pd.DataFrame(self.data)
