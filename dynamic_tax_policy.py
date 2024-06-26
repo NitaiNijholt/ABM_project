@@ -40,8 +40,8 @@ class DynamicTaxPolicy:
         self.tax_brackets = [(quartiles[i], adjusted_tax_rates[i]) for i in range(len(quartiles))]
 
     def calculate_tax(self, agent_idx):
-        income = self.pretax_incomes[agent_idx - 1]
-        print(f"Agent {agent_idx} has pretax income {income}.")
+        income = self.pretax_incomes[agent_idx]
+        # print(f"Agent {agent_idx} has pretax income {income}.")
         tax = 0
         previous_bound = 0
         for upper_bound, tax_rate in self.tax_brackets:
@@ -60,6 +60,8 @@ class DynamicTaxPolicy:
         taxes = []
         for agent_idx, agent in enumerate(self.grid.agents.values()):
             tax = self.calculate_tax(agent_idx)
+            if agent.wealth < tax:
+                print(agent.agent_id, tax, agent.wealth)
             agent.wealth -= tax
             taxes.append(tax)
             total_tax_collected += tax
@@ -150,7 +152,7 @@ class DynamicTaxPolicy:
         # print(f"Adjusted pretax incomes at step {time_step}: {self.pretax_incomes}") 
 
         self.update_tax_brackets()
-        self.apply_taxes(time_step)
+        # self.apply_taxes(time_step)
 
         # current_welfare = self.calculate_social_welfare()
         # welfare_change = current_welfare - self.previous_welfare
