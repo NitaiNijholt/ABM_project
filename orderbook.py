@@ -78,13 +78,17 @@ class OrderBooks:
                 self.agents[best_ask['agent_id']].wealth = ask_agent['wealth']
                 self.agents[best_ask['agent_id']].__setattr__(self.resource_type, ask_agent[self.resource_type])
                 self.agents[best_ask['agent_id']].income += price
+                
+                # Decrement the amount_orders for both agents
+                self.agents[best_bid['agent_id']].amount_orders -= 1
+                self.agents[best_ask['agent_id']].amount_orders -= 1
 
                 # Remove the best bid and ask from the lists
                 self.bids.pop(0)
                 self.asks.pop(0)
 
                 # Debug print
-#                 print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
+                print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
                 self.transactions.append({'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
             else:
                 break
@@ -107,14 +111,21 @@ class OrderBooks:
 
     def expire_order(self, order, order_type):
         if self.current_timestep - order['timestamp'] >= self.order_lifespan:
-            agent = self.agents_dict[order['agent_id']]
+            agent_id = order['agent_id']
+            agent = self.agents_dict[agent_id]
+
             if order_type == 'bid':
                 # Refund the bid amount
                 agent['wealth'] += order['price']
             elif order_type == 'ask':
                 if agent[self.resource_type] >= 1:
                     agent[self.resource_type] -= 1
+
+            # Decrement the amount_orders for the agent
+            self.agents[agent_id].amount_orders -= 1
+
             # Debug print
-            # print(f"Order expired: Agent {order['agent_id']}, Price {order['price']}, Resource {self.resource_type}, Type {order_type}")
+            print(f"Order expired: Agent {agent_id}, Price {order['price']}, Resource {self.resource_type}, Type {order_type}")
             return True
         return False
+
