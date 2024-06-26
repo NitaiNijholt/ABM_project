@@ -1,9 +1,5 @@
-import random
-import numpy as np
-
-
 class OrderBooks:
-    def __init__(self, agents_dict, resource_type, order_lifespan):
+    def __init__(self, agents_dict, resource_type, order_lifespan, agents):
         """
         OrderBooks class to manage bids and asks for resources in a trading system.
 
@@ -15,6 +11,7 @@ class OrderBooks:
             resource_type (str): The type of resource this order book handles (e.g., 'wood' or 'stone').
             order_lifespan (int): The number of timesteps an order remains active before expiring.
             current_timestep (int): The current timestep in the simulation.
+            agents (dict): Reference to the agents dictionary from the Simulation class.
         """
         self.bids = []
         self.asks = []
@@ -23,31 +20,32 @@ class OrderBooks:
         self.resource_type = resource_type
         self.order_lifespan = order_lifespan
         self.current_timestep = 0
-    
+        self.agents = agents  # Reference to the actual Agent objects
+
     def place_bid(self, agent_id, price):
         # Debug print
-#         print(f"Placing bid: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
+        # print(f"Placing bid: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
         self.bids.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
         self.match_orders('bid')
-        
+
     def place_ask(self, agent_id, price):
         # Debug print
-#         print(f"Placing ask: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
+        # print(f"Placing ask: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
         self.asks.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
         self.match_orders('ask')
-        
+
     def check_price(self):
         if self.bids:
             best_bid = max(self.bids, key=lambda x: x['price'])['price']
         else:
             best_bid = None
-        
+
         if self.asks:
             best_ask = min(self.asks, key=lambda x: x['price'])['price']
         else:
             best_ask = None
         return best_bid, best_ask
-        
+
     def match_orders(self, order_type):
         # Sort bids in descending order by price and asks in ascending order by price
         self.bids.sort(key=lambda x: x['price'], reverse=True)
@@ -66,18 +64,27 @@ class OrderBooks:
                 else:
                     price = best_bid['price']
 
+                # Update the wealth, resources, income
                 bid_agent['wealth'] -= price
                 bid_agent[self.resource_type] += 1
-
+                
                 ask_agent['wealth'] += price
                 ask_agent[self.resource_type] -= 1
+
+                # Update the actual Agent objects
+                self.agents[best_bid['agent_id']].wealth = bid_agent['wealth']
+                self.agents[best_bid['agent_id']].__setattr__(self.resource_type, bid_agent[self.resource_type])
+                self.agents[best_bid['agent_id']].income -= price  
+                self.agents[best_ask['agent_id']].wealth = ask_agent['wealth']
+                self.agents[best_ask['agent_id']].__setattr__(self.resource_type, ask_agent[self.resource_type])
+                self.agents[best_ask['agent_id']].income += price
 
                 # Remove the best bid and ask from the lists
                 self.bids.pop(0)
                 self.asks.pop(0)
 
                 # Debug print
-                # print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
+#                 print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
                 self.transactions.append({'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
             else:
                 break
@@ -86,7 +93,7 @@ class OrderBooks:
     def increment_timestep(self):
         self.current_timestep += 1
         self.expire_orders()
-    
+
     def remove_orders(self, agent_id):
         """
         Remove all orders of a given agent from the order books.
@@ -108,9 +115,6 @@ class OrderBooks:
                 if agent[self.resource_type] >= 1:
                     agent[self.resource_type] -= 1
             # Debug print
-#             print(f"Order expired: Agent {order['agent_id']}, Price {order['price']}, Resource {self.resource_type}, Type {order_type}")
+            # print(f"Order expired: Agent {order['agent_id']}, Price {order['price']}, Resource {self.resource_type}, Type {order_type}")
             return True
         return False
-
-
-
