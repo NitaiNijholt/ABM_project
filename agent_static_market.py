@@ -2,8 +2,9 @@ import numpy as np
 from scipy.stats import gamma, lognorm
 from grid import Grid
 from house import House
+import random
 
-class Agent:
+class Agent_static_market:
     def __init__(self, sim, agent_id, position, grid, market, creation_time, 
                  wealth=0, wood=0, stone=0, lifetime_distribution='gamma', lifetime_mean=80, lifetime_std=10, income_per_timestep=1):
         """
@@ -53,6 +54,7 @@ class Agent:
         self.required_building_time = 5
         self.current_action = 'Nothing'
         self.earning_rates = {}
+        self.best_position = 0
 
         self.wealth_over_time = []
         self.houses_over_time = []
@@ -60,7 +62,6 @@ class Agent:
         self.bought_at_timesteps = []
         self.sold_at_timesteps = []
         self.taxes_paid_at_timesteps = []
-        self.order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
 
         self.income = 0  # New attribute to track income
 
@@ -122,9 +123,9 @@ class Agent:
         move_scores = [1 + (score - min_score) ** self.objective_alpha for score in move_scores]
         return possible_moves[np.random.choice(len(possible_moves), p=np.array(move_scores)/sum(move_scores))]
 
-    def move(self):
+    def random_move(self):
         """
-        Agent moves to an empty neighboring cell. If all neighboring cells are occupied, the agent does not move.
+        Agent moves to a neighboring cell randomly.
         """
         possible_moves = self.find_moves()
         if len(possible_moves) == 0:
@@ -132,6 +133,15 @@ class Agent:
 
         new_position = possible_moves[np.random.randint(len(possible_moves))]
 
+        self.grid.agent_matrix[self.position] = 0
+        self.grid.agent_matrix[new_position] = self.agent_id
+        self.position = new_position
+
+    def move(self):
+        """
+        Agent moves to an empty neighboring cell. If all neighboring cells are occupied, the agent does not move.
+        """
+        new_position = self.best_position
         self.grid.agent_matrix[self.position] = 0
         self.grid.agent_matrix[new_position] = self.agent_id
         self.position = new_position
@@ -178,21 +188,24 @@ class Agent:
         """
         Agent collects income from all houses.
         """
-        income_collected = sum(self.grid.house_incomes[house.position] for house in self.houses)
+        income_collected = sum(self.grid.house_incomes[house.position] for house in self.houses) * self.income_per_timestep
         self.wealth += income_collected
         self.income = income_collected  # Track the income
 
     def step(self):
+        self.collect_income()
         # print(f"Agent {self.agent_id} at step {self.sim.t}: Wealth={self.wealth}, Wood={self.wood}, Stone={self.stone}")
         if self.currently_building_timesteps > 0:
             self.currently_building_timesteps += 1
+            self.current_action = 'building_house'
             if self.currently_building_timesteps == self.required_building_time:
                 self.currently_building_timesteps = 0
                 self.build_house()
         else:
             actions = [self.move, self.build, self.buy, self.sell, self.gather]
+            self.best_position = self.find_target_position()
             self.earning_rates = {
-                'move': self.earning_rate_random_moving(),
+                'move': self.earning_rate_moving(),
                 'build': self.earning_rate_building(),
                 'buy': self.earning_rate_buying(),
                 'sell': self.earning_rate_selling(),
@@ -200,11 +213,10 @@ class Agent:
             }
             # print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
             action = actions[np.argmax(list(self.earning_rates.values()))]
-            self.current_action = action.__name__
             # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             action()
-
-        self.collect_income()
+            self.current_action = action.__name__
+            
         self.wealth_over_time.append(self.wealth)
         self.houses_over_time.append(len(self.houses))
         self.bought_at_timesteps.append(0)
@@ -228,10 +240,6 @@ class Agent:
         self.sim.make_agent(max(self.grid.agents.keys()) + 1)
         del self.grid.agents[self.agent_id]
         self.grid.agent_matrix[self.position] = 0
-        
-        # Remove agent's orders from the order books
-        self.sim.wood_order_book.remove_orders(self.agent_id)
-        self.sim.stone_order_book.remove_orders(self.agent_id)
 
         for house in self.houses:
             self.grid.house_matrix[house.position] -= 1
@@ -239,125 +247,18 @@ class Agent:
     def buy(self):
         """
         Agent buys resources from the market.
-        """      
+        """
         wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
         stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
-        wood_price = self.determine_price('buy', 'wood')
-        stone_price = self.determine_price('buy', 'stone')
-        self.place_order(self.order_books, 'wood', 'buy', price = wood_price, quantity = wood_to_buy)
-        self.place_order(self.order_books, 'stone', 'buy', price = stone_price, quantity = stone_to_buy)
+        self.market.add_buyer(self, wood_to_buy, stone_to_buy)
 
     def sell(self):
         """
         Agent sells all resources to the market.
         """
-        
-        wood_price = self.determine_price('sell', 'wood')
-        stone_price = self.determine_price('sell', 'stone')
-        self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
-        self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
+        self.market.add_seller(self, self.wood, self.stone)
 
-    def place_order(self, order_books, resource_type, order_type, price, quantity):
-        """
-        Place a buy or sell order in the order book (market).
 
-        Parameters
-        ----------
-        order_books : dict
-            A dictionary containing the order books for different resources.
-            Example: {'wood': wood_order_book, 'stone': stone_order_book}
-        resource_type : str
-            The type of resource to trade ('wood' or 'stone').
-        order_type : str
-            The type of order to place ('buy' or 'sell').
-        price : float
-            The price at which to place the order.
-        quantity : int
-            The amount of the resource to trade.
-        """
-        if resource_type not in order_books:
-            raise ValueError(f"Invalid resource type: {resource_type}")
-
-        order_book = order_books[resource_type]
-
-        if order_type == 'buy':
-            for _ in range(quantity):
-                order_book.place_bid(self.agent_id, price)
-        elif order_type == 'sell':
-            for _ in range(quantity):
-                order_book.place_ask(self.agent_id, price)
-        else:
-            raise ValueError(f"Invalid order type: {order_type}")
-
-        # Log the order placement for debugging
-        # print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
-
-    def update_prices(self, order_type):
-        assert order_type in ('sell', 'buy'), 'Takes in "buy" or "sell" only'
-
-        age = self.sim.t - self.creation_time
-        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
-        earning_rate = total_income / self.required_building_time
-        m_price = earning_rate / sum(self.grid.house_cost)
-
-        ob_prices = {
-            'wood': self.sim.wood_order_book.check_price(),
-            'stone': self.sim.stone_order_book.check_price()
-        }
-
-        for resource in ob_prices:
-            ob_price_bid, ob_price_ask = ob_prices[resource]
-            if order_type == 'sell':
-                if ob_price_bid is not None:
-                    rate = max(ob_price_bid, m_price)
-                else:
-                    rate = m_price
-            else:
-                if ob_price_ask is not None:
-                    rate = min(ob_price_ask, m_price)
-                else:
-                    rate = m_price
-
-            if resource == 'wood':
-                self.market.wood_rate = rate
-            elif resource == 'stone':
-                self.market.stone_rate = rate
-
-        
-    def determine_price(self, order_type, resource):
-        age = self.sim.t - self.creation_time
-        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
-        earning_rate = total_income / self.required_building_time
-        m_price = earning_rate / sum(self.grid.house_cost)
-
-        ob_price_wood_bid, ob_price_wood_ask = self.sim.wood_order_book.check_price()
-        ob_price_stone_bid, ob_price_stone_ask = self.sim.stone_order_book.check_price()
-
-        if resource == 'wood':
-            ob_price_bid, ob_price_ask = ob_price_wood_bid, ob_price_wood_ask
-        elif resource == 'stone':
-            ob_price_bid, ob_price_ask = ob_price_stone_bid, ob_price_stone_ask
-        else:
-            return None
-
-        if order_type == 'buy':
-            if ob_price_ask is not None:
-                self.market.wood_rate = min(ob_price_ask, m_price) if resource == 'wood' else self.market.stone_rate
-                self.market.stone_rate = min(ob_price_ask, m_price) if resource == 'stone' else self.market.wood_rate
-            else:
-                self.market.wood_rate = m_price if resource == 'wood' else self.market.stone_rate
-                self.market.stone_rate = m_price if resource == 'stone' else self.market.wood_rate
-        elif order_type == 'sell':
-            if ob_price_bid is not None:
-                self.market.wood_rate = max(ob_price_bid, m_price) if resource == 'wood' else self.market.stone_rate
-                self.market.stone_rate = max(ob_price_bid, m_price) if resource == 'stone' else self.market.wood_rate
-            else:
-                self.market.wood_rate = m_price if resource == 'wood' else self.market.stone_rate
-                self.market.stone_rate = m_price if resource == 'stone' else self.market.wood_rate
-
-        return self.market.wood_rate if resource == 'wood' else self.market.stone_rate
-
-        
     def earning_rate_building(self):
         """
         Calculate the earning rate of building a house.
@@ -367,6 +268,7 @@ class Agent:
 
         age = self.sim.t - self.creation_time
         total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        total_income = self.posttax_extra_income(total_income)
         earning_rate = total_income / self.required_building_time
         return earning_rate
 
@@ -376,55 +278,52 @@ class Agent:
         """
         num_wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
         num_stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
-        self.update_prices('buy')
-        
         cost = self.market.wood_rate * num_wood_to_buy + self.market.stone_rate * num_stone_to_buy
 
-        # If agent has enough resources, return 0
         if num_wood_to_buy == 0 and num_stone_to_buy == 0:
             return 0
 
-        # If agent doesn't have enough wealth, return 0
         if cost > self.wealth:
             return 0
 
-        # Calculate and return the net earning rate
+        if num_wood_to_buy > self.market.wood or num_stone_to_buy > self.market.stone:
+            return 0
+
         age = self.sim.t - self.creation_time
         required_time = self.required_building_time + 1
         gross_income = self.income_per_timestep * (self.guessed_lifetime - age - required_time)
+        gross_income = self.posttax_extra_income(gross_income)
         return (gross_income - cost) / required_time
 
     def earning_rate_selling(self):
         """
         Calculate the earning rate of selling resources.
         """
-        # If agent does not have any resources, return 0
         if self.wood == 0 and self.stone == 0:
             return 0
-        self.update_prices('sell')
         earning_rate = self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
+        earning_rate = self.posttax_extra_income(earning_rate)
         return earning_rate
-    
+
     def earning_rate_gathering(self):
         """
         Calculate the earning rate of gathering resources in the current position.
         """
         if self.grid.resource_matrix_wood[self.position] == 0 and self.grid.resource_matrix_stone[self.position] == 0:
             return 0
-        self.update_prices('sell')
-        earning_rate = self.market.wood_rate * min(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * min(1, self.grid.resource_matrix_stone[self.position])
+
+        earning_rate = self.market.wood_rate * max(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * max(1, self.grid.resource_matrix_stone[self.position])
+        earning_rate = self.posttax_extra_income(earning_rate)
         return earning_rate
-    
-    
 
     def earning_rate_random_moving(self):
         """
         Calculate the earning rate of moving to a neighboring cell randomly.
         """
-        self.update_prices('sell')
         if (self.grid.house_cost[0] <= self.wood and self.grid.house_cost[1] <= self.stone) and self.grid.house_matrix[self.position] != 0:
             age = self.sim.t - self.creation_time
-            total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+            total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time - 1)
+            total_income = self.posttax_extra_income(total_income)
             earning_rate = total_income / (self.required_building_time + 1)
             return earning_rate
         
@@ -437,7 +336,85 @@ class Agent:
         earning_rate = 0
         for pos in positions_to_check:
             wood, stone = self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]
-            required_time = max(wood, stone) + 1
-            earning_rate += (self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
-        
+            required_time = min(wood, stone) + 1
+            earning_rate += self.posttax_extra_income(self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
         return earning_rate / len(positions_to_check)
+
+    def earning_rate_moving(self):
+        """
+        Calculate the earning rate of moving to a target neighboring cell.
+        """
+        position = self.best_position
+        # If the agent has enough resources and the cell is available for building, the agent should go there and build a house
+        if self.grid.house_cost[0] <= self.wood and self.grid.house_cost[1] <= self.stone and self.grid.house_matrix[position] < self.grid.max_house_num:
+            age = self.sim.t - self.creation_time
+            total_income = self.income_per_timestep * self.grid.house_incomes[position] * (self.guessed_lifetime - age - self.required_building_time - 1)
+            total_income = self.posttax_extra_income(total_income)
+            earning_rate = total_income / (self.required_building_time + 1)
+            return earning_rate
+        # Otherwise, the agent should move to the target cell and gather resources
+        else:
+            wood, stone = self.grid.resource_matrix_wood[position], self.grid.resource_matrix_stone[position]
+            required_time = min(wood, stone) + 1
+            earning_rate = self.posttax_extra_income(self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+
+        return earning_rate
+
+    def find_target_position(self):
+        """
+        Find the target position to move to.
+        """
+        positions = self.grid.get_neighbors(self.position)
+        positions = [pos for pos in positions if self.grid.if_no_agents(pos)]
+        # print(f"Agent {self.agent_id} available positions: {positions}")
+
+        # If there are no available positions, the agent should stay in the current position
+        if not positions:
+            print(f"Agent {self.agent_id} has no available positions to move to.")
+            print(f"Returning current position: {self.position}")
+            return self.position
+
+        # The initial best position is randomly selected from the available positions
+        best_position = random.choice(positions)
+
+        # When the agent has enough resources to build a house, the agent should move to the most valuable cell that is available for building
+        if self.wood >= self.grid.house_cost[0] and self.stone >= self.grid.house_cost[1]:
+            for pos in positions:
+                if self.grid.house_matrix[pos] < self.grid.max_house_num and self.grid.house_incomes[pos] > self.grid.house_incomes[best_position]:
+                    best_position = pos
+        # Otherwise, the agent should move to the neighbors to gather resources
+        else:
+            required_wood, required_stone = self.grid.house_cost[0] - self.wood, self.grid.house_cost[1] - self.stone
+            best_position = max(positions, key=lambda pos: min(self.grid.resource_matrix_wood[pos], required_wood) + min(self.grid.resource_matrix_stone[pos], required_stone))
+        return best_position
+
+    def posttax_extra_income(self, extra_income):
+        """
+        Calculate the post-tax extra income given the pre-tax extra income.
+        """
+        tax_brackets = self.sim.tax_policy.tax_brackets
+        # First, calculate the post-tax house income
+        tax1 = 0
+        previous_bound = 0
+        for upper_bound, tax_rate in tax_brackets:
+            if self.income > previous_bound:
+                taxable_income = min(self.income - previous_bound, upper_bound - previous_bound)
+                tax1 += taxable_income * tax_rate
+                previous_bound = upper_bound
+            else:
+                break
+        # posttax_house_income = self.income - tax1
+
+        # Then, calculate the total post-tax income
+        tax2 = 0
+        previous_bound = 0
+        for upper_bound, tax_rate in tax_brackets:
+            if extra_income > previous_bound:
+                taxable_income = min(extra_income - previous_bound, upper_bound - previous_bound)
+                tax2 += taxable_income * tax_rate
+                previous_bound = upper_bound
+            else:
+                break
+        # total_posttax_income = self.income + extra_income - tax2
+
+        return extra_income + tax1 - tax2
