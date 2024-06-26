@@ -2,13 +2,13 @@ import numpy as np
 
 
 class DynamicTaxPolicy:
-    def __init__(self, grid, sim, std_dev_threshold=1000, discount_rate=0.95):
+    def __init__(self, grid, sim, std_dev_threshold=1, discount_rate=0.95):
         self.grid = grid
         self.std_dev_threshold = std_dev_threshold
         self.discount_rate = discount_rate
         self.pretax_incomes = []
         self.posttax_incomes = []
-        self.base_tax_rates = [0.1, 0.2, 0.3, 0.4]
+        self.base_tax_rates = [0.1, 0.15, 0.2, 0.25, 0.35, 0.45]
         self.tax_brackets = []
         self.previous_welfare = 0
         self.total_discounted_welfare_change = 0
@@ -23,24 +23,25 @@ class DynamicTaxPolicy:
         current_std_dev = np.std(income_values)
 
         # Initialize the adjustment factors to zero (no change)
-        adjustment_factors = [0, 0, 0, 0]
+        adjustment_factors = [0, 0, 0, 0, 0, 0]
 
         # Check if the standard deviation of income is above the threshold
         if current_std_dev > self.std_dev_threshold:
             # Adjust tax rates based on quartiles: more for higher wealth, less for lower wealth
-            adjustment_factors = [-0.02, -0.01, 0.01, 0.02]
+            adjustment_factors = [-0.1, -0.08, -0.05, 0.05, 0.1, 0.2]
         
         # Calculate adjusted tax rates
         adjusted_tax_rates = [max(0, rate + adj) for rate, adj in zip(self.base_tax_rates, adjustment_factors)]
         
         # Define income quartiles and assign adjusted tax rates
-        quartiles = np.percentile(income_values, [25, 50, 75, 100])
-        print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
+        percentiles = [10, 30, 50, 70, 90, 100]
+        quartiles = np.percentile(income_values, percentiles)
+        # print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
         self.tax_brackets = [(quartiles[i], adjusted_tax_rates[i]) for i in range(len(quartiles))]
 
     def calculate_tax(self, agent_idx):
-        income = self.pretax_incomes[agent_idx - 1]
-        print(f"Agent {agent_idx} has pretax income {income}.")
+        income = self.pretax_incomes[agent_idx]
+        # print(f"Agent {agent_idx} has pretax income {income}.")
         tax = 0
         previous_bound = 0
         for upper_bound, tax_rate in self.tax_brackets:
@@ -59,10 +60,12 @@ class DynamicTaxPolicy:
         taxes = []
         for agent_idx, agent in enumerate(self.grid.agents.values()):
             tax = self.calculate_tax(agent_idx)
+            if agent.wealth < tax:
+                print(agent.agent_id, tax, agent.wealth)
             agent.wealth -= tax
             taxes.append(tax)
             total_tax_collected += tax
-            print(f"Agent {agent.agent_id} pays tax {tax} with remaining wealth {agent.wealth}.")
+            # print(f"Agent {agent.agent_id} pays tax {tax} with remaining wealth {agent.wealth}.")
 
 
         # Distribute taxes evenly
@@ -71,12 +74,12 @@ class DynamicTaxPolicy:
         
         for agent_idx, agent in enumerate(self.grid.agents.values()):
             agent.wealth += redistribution_amount
-            print(f"Agent {agent.agent_id} receives {redistribution_amount} from tax revenue, new wealth: {agent.wealth}.")
+            # print(f"Agent {agent.agent_id} receives {redistribution_amount} from tax revenue, new wealth: {agent.wealth}.")
 
         # Update posttax incomes after taxes are collected and distributed
         for idx, agent in enumerate(self.grid.agents.values()):
             self.posttax_incomes[idx] = self.pretax_incomes[idx] - taxes[idx] + redistribution_amount
-            print(f"Agent {agent.agent_id} has posttax income {self.posttax_incomes[idx]}.")
+            # print(f"Agent {agent.agent_id} has posttax income {self.posttax_incomes[idx]}.")
         
         current_welfare = self.calculate_social_welfare()
         welfare_change = current_welfare - self.previous_welfare
@@ -85,31 +88,49 @@ class DynamicTaxPolicy:
         self.previous_welfare = current_welfare
 
         self.sim.total_discounted_welfare_change[self.sim.t] = self.total_discounted_welfare_change
-        print(f"Total discounted welfare change at step {self.sim.t}: {self.total_discounted_welfare_change}")
+        # print(f"Total discounted welfare change at step {self.sim.t}: {self.total_discounted_welfare_change}")
 
-    def gini_coefficient(self, use_posttax=True):
+    def gini_coefficient(self):
         # Calculate the Gini coefficient
-        incomes = np.array(self.posttax_incomes if use_posttax else self.pretax_incomes)
-        n = len(incomes)
-        income_matrix = np.abs(np.subtract.outer(incomes, incomes))
-        gini = income_matrix.sum() / (2 * n * np.sum(incomes))
-        print(f"Calculated Gini Coefficient: {gini}") 
+        wealths = list(agent.wealth for agent in self.grid.agents.values())
+        n = len(wealths)
+        wealth_matrix = np.abs(np.subtract.outer(wealths, wealths))
+        gini = wealth_matrix.sum() / (2 * n * np.sum(wealths))
+        # print(f"Calculated Gini Coefficient: {gini}") 
         return gini
 
+    # def gini_coefficient(self, use_posttax=True):
+    #     # Calculate the Gini coefficient
+    #     incomes = np.array(self.posttax_incomes if use_posttax else self.pretax_incomes)
+    #     n = len(incomes)
+    #     income_matrix = np.abs(np.subtract.outer(incomes, incomes))
+    #     gini = income_matrix.sum() / (2 * n * np.sum(incomes))
+    #     print(f"Calculated Gini Coefficient: {gini}") 
+    #     return gini
+    
     def calculate_equality(self):
         # Calculate the equality measure using the Gini index
         n = len(self.grid.agents)
         gini_index = self.gini_coefficient()
         eq_value = 1 - (n / (n - 1)) * gini_index
         self.sim.equality[self.sim.t] = eq_value
-        print(f"Calculated Equality Measure: {eq_value}")
+        # print(f"Calculated Equality Measure: {eq_value}")
         return eq_value
 
-    def calculate_productivity(self, use_posttax=True):
+    # def calculate_productivity(self, use_posttax=True):
+    #     # Sum of all incomes which represents the total productivity
+    #     total_productivity = np.sum(self.posttax_incomes if use_posttax else self.pretax_incomes)
+    #     self.sim.productivity[self.sim.t] = total_productivity
+    #     print(f"Total Productivity: {total_productivity}")
+    #     return total_productivity
+
+    def calculate_productivity(self):
         # Sum of all incomes which represents the total productivity
-        total_productivity = np.sum(self.posttax_incomes if use_posttax else self.pretax_incomes)
+        # print("Wealths:", self.grid.agents.values.wealth)
+        # print("Wealths:", self.grid.agents.wealth)
+        total_productivity = np.sum(agent.wealth for agent in self.grid.agents.values())
         self.sim.productivity[self.sim.t] = total_productivity
-        print(f"Total Productivity: {total_productivity}")
+        # print(f"Total Productivity: {total_productivity}")
         return total_productivity
 
     def calculate_social_welfare(self):
@@ -117,21 +138,21 @@ class DynamicTaxPolicy:
         productivity = self.calculate_productivity()
         social_welfare = self.calculate_equality() * productivity
         self.sim.social_welfare[self.sim.t] = social_welfare
-        print(f"Calculated Social Welfare: {social_welfare}")
+        # print(f"Calculated Social Welfare: {social_welfare}")
         return social_welfare
 
     def simulate_time_step(self, time_step):
         # Update pretax_incomes
         self.pretax_incomes = [agent.income for agent in self.grid.agents.values()]
         # self.pretax_incomes = [i*1000 for i in range(1, 5)]  # For testing purposes
-        print("Pretax incomes for all agents:", self.pretax_incomes)
+        # print("Pretax incomes for all agents:", self.pretax_incomes)
 
         # # Add random fluctuation to pretax_incomes (only for testing welfare change)
         # self.pretax_incomes = [income + income * np.random.uniform(-0.1, 0.1) for income in self.pretax_incomes]
         # print(f"Adjusted pretax incomes at step {time_step}: {self.pretax_incomes}") 
 
         self.update_tax_brackets()
-        self.apply_taxes(time_step)
+        # self.apply_taxes(time_step)
 
         # current_welfare = self.calculate_social_welfare()
         # welfare_change = current_welfare - self.previous_welfare

@@ -1,5 +1,7 @@
+import sys
+
 class Market:
-    def __init__(self, initial_wood_rate, initial_stone_rate, sensitivity=0.1):
+    def __init__(self, initial_wood_rate, initial_stone_rate, sensitivity=0.001):
         self.wood_rate = initial_wood_rate
         self.stone_rate = initial_stone_rate
         self.sensitivity = sensitivity
@@ -8,8 +10,8 @@ class Market:
         self.wood_to_sell = 0
         self.stone_to_buy = 0
         self.stone_to_sell = 0
-        self.wood = 10000
-        self.stone = 10000
+        self.wood = 1000000
+        self.stone = 1000000
 
         self.wood_rate_history = []
         self.stone_rate_history = []
@@ -32,6 +34,7 @@ class Market:
 
         # Process the order
         seller.wealth += wood_to_sell * self.wood_rate + stone_to_sell * self.stone_rate
+        seller.income += wood_to_sell * self.wood_rate + stone_to_sell * self.stone_rate
         seller.wood -= wood_to_sell
         self.wood += wood_to_sell
         seller.stone -= stone_to_sell
@@ -56,6 +59,8 @@ class Market:
 
         # Process the order
         buyer.wealth -= wood_to_buy * self.wood_rate + stone_to_buy * self.stone_rate
+        buyer.income -= wood_to_buy * self.wood_rate + stone_to_buy * self.stone_rate
+        buyer.income = max(0, buyer.income)
         buyer.wood += wood_to_buy
         self.wood -= wood_to_buy
         buyer.stone += stone_to_buy
