@@ -268,9 +268,8 @@ class Agent_static_market:
 
         age = self.sim.t - self.creation_time
         total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
-        total_income = self.posttax_extra_income(total_income)
         earning_rate = total_income / self.required_building_time
-        return earning_rate
+        return self.posttax_extra_income(earning_rate)
 
     def earning_rate_buying(self):
         """
@@ -292,8 +291,7 @@ class Agent_static_market:
         age = self.sim.t - self.creation_time
         required_time = self.required_building_time + 1
         gross_income = self.income_per_timestep * (self.guessed_lifetime - age - required_time)
-        gross_income = self.posttax_extra_income(gross_income)
-        return (gross_income - cost) / required_time
+        return self.posttax_extra_income(gross_income / required_time) - cost / required_time
 
     def earning_rate_selling(self):
         """
@@ -337,7 +335,7 @@ class Agent_static_market:
         for pos in positions_to_check:
             wood, stone = self.grid.resource_matrix_wood[pos], self.grid.resource_matrix_stone[pos]
             required_time = min(wood, stone) + 1
-            earning_rate += self.posttax_extra_income(self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+            earning_rate += self.posttax_extra_income(self.market.wood_rate * wood + self.market.stone_rate * stone / required_time)
         return earning_rate / len(positions_to_check)
 
     def earning_rate_moving(self):
@@ -356,7 +354,7 @@ class Agent_static_market:
         else:
             wood, stone = self.grid.resource_matrix_wood[position], self.grid.resource_matrix_stone[position]
             required_time = min(wood, stone) + 1
-            earning_rate = self.posttax_extra_income(self.market.wood_rate * wood + self.market.stone_rate * stone) / required_time
+            earning_rate = self.posttax_extra_income(self.market.wood_rate * wood + self.market.stone_rate * stone / required_time)
 
         return earning_rate
 
