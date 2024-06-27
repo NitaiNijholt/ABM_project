@@ -64,7 +64,15 @@ class Agent(Agent_static_market):
                 'gather': self.earning_rate_gathering()
             }
 #             print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
-            action_index = np.argmax(list(self.earning_rates.values()))
+            # action_index = np.argmax(list(self.earning_rates.values()))
+            # action = actions[action_index]
+            logit_probs = self.logit_prob(list(self.earning_rates.values()))
+            try:
+                action_name = np.random.choice(list(self.earning_rates.keys()), p=logit_probs)
+            except:
+                action_name = 'move'
+            self.current_action = action_name
+            action_index = list(self.earning_rates.keys()).index(action_name)
             action = actions[action_index]
             
             if action.__name__ == 'buy' or action.__name__ == 'sell':

@@ -74,7 +74,7 @@ class OrderBooks:
                 # Update the actual Agent objects
                 self.agents[best_bid['agent_id']].wealth = bid_agent['wealth']
                 self.agents[best_bid['agent_id']].__setattr__(self.resource_type, bid_agent[self.resource_type])
-                self.agents[best_bid['agent_id']].income -= price  
+                # self.agents[best_bid['agent_id']].income -= price  
                 self.agents[best_ask['agent_id']].wealth = ask_agent['wealth']
                 self.agents[best_ask['agent_id']].__setattr__(self.resource_type, ask_agent[self.resource_type])
                 self.agents[best_ask['agent_id']].income += price
