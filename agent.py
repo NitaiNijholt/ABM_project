@@ -69,7 +69,7 @@ class Agent(Agent_static_market):
             
             if action.__name__ == 'buy':
                 if self.amount_orders >= self.limit:
-                    print('LIMIT HIT')
+                    # print('LIMIT HIT')
                     earning_rates_values = list(self.earning_rates.values())
                     earning_rates_values[action_index] = -10
                     # Compute the argmax again to find the second highest value
@@ -81,6 +81,7 @@ class Agent(Agent_static_market):
             if action.__name__ in list_sell:
                 self.update_prices('sell')
             elif action.__name__ == 'buy':
+                self.amount_orders += 1
                 self.update_prices('buy')
                 
             action()
