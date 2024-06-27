@@ -142,6 +142,11 @@ class Simulation:
         self.grid.update_house_incomes()
         if self.t % self.tax_period == 0:
             self.tax_policy.apply_taxes()
+
+
+        # Update order books with current agents' state
+        self.wood_order_book.agents_dict = self.get_agents_dict()
+        self.stone_order_book.agents_dict = self.get_agents_dict()
         
         # Increment timestep and remove expired orders
         self.wood_order_book.increment_timestep()
