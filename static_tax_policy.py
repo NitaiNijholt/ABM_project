@@ -113,14 +113,14 @@ class StaticTaxPolicy:
         # Sum of all incomes which represents the total productivity
         total_productivity = np.sum(agent.wealth for agent in self.grid.agents.values())
         self.sim.productivity[self.sim.t] = total_productivity
-        print(f"Total Productivity: {total_productivity}")
+        # print(f"Total Productivity: {total_productivity}")
         return total_productivity
 
     def calculate_social_welfare(self):
         # Calculate the social welfare by equality * productivity
         social_welfare = self.calculate_equality() * self.calculate_productivity()
         self.sim.social_welfare[self.sim.t] = social_welfare
-        print(f"Calculated Social Welfare: {social_welfare}")
+        # print(f"Calculated Social Welfare: {social_welfare}")
         return social_welfare
 
     def simulate_time_step(self, time_step):
