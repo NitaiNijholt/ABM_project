@@ -267,7 +267,7 @@ class Agent_static_market:
             return 0
 
         age = self.sim.t - self.creation_time
-        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        total_income = self.income_per_timestep * self.grid.house_incomes[self.position] * (self.guessed_lifetime - age - self.required_building_time)
         earning_rate = total_income / self.required_building_time
         return self.posttax_extra_income(earning_rate)
 
@@ -290,7 +290,7 @@ class Agent_static_market:
 
         age = self.sim.t - self.creation_time
         required_time = self.required_building_time + 1
-        gross_income = self.income_per_timestep * (self.guessed_lifetime - age - required_time)
+        gross_income = self.income_per_timestep * self.grid.house_incomes[self.position] * (self.guessed_lifetime - age - required_time)
         return self.posttax_extra_income(gross_income / required_time) - cost / required_time
 
     def earning_rate_selling(self):
