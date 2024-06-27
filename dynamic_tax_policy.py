@@ -60,9 +60,10 @@ class DynamicTaxPolicy:
         taxes = []
         for agent_idx, agent in enumerate(self.grid.agents.values()):
             tax = self.calculate_tax(agent_idx)
-            agent.wealth -= tax
-            taxes.append(tax)
-            total_tax_collected += tax
+            if agent.wealth - tax >= 0:
+                agent.wealth -= tax
+                taxes.append(tax)
+                total_tax_collected += tax
             # print(f"Agent {agent.agent_id} pays tax {tax} with remaining wealth {agent.wealth}.")
 
 

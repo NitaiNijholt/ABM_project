@@ -35,7 +35,7 @@ class StaticTaxPolicy:
         # Calculate tax based on cumulative brackets for progressive taxation
         tax_brackets = self.calculate_tax_brackets()
         income = self.pretax_incomes[agent_id]
-        print(f"Agent {agent_id+1} with pretax income {income}.")
+        # print(f"Agent {agent_id+1} with pretax income {income}.")
         tax = 0
         previous_bound = 0
         for i, (upper_bound, tax_rate) in enumerate(tax_brackets):
@@ -61,7 +61,7 @@ class StaticTaxPolicy:
             # total_tax_collected += taxes[agent_id]
             # agent.wealth -= taxes[agent_id]
             # agent.taxes_paid_at_timesteps.append(taxes[agent_id])
-            print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}.")
+            # print(f"Agent {agent_id+1} with wealth {agent.wealth + tax} pays tax {tax} with remaining wealth {agent.wealth}.")
 
         # Redistribution of tax revenue
         redistribution_amount = total_tax_collected / len(self.grid.agents) if self.grid.agents else 0
@@ -88,7 +88,7 @@ class StaticTaxPolicy:
         n = len(wealths)
         wealth_matrix = np.abs(np.subtract.outer(wealths, wealths))
         gini = wealth_matrix.sum() / (2 * n * np.sum(wealths))
-        print(f"Calculated Gini Coefficient: {gini}") 
+        # print(f"Calculated Gini Coefficient: {gini}") 
         return gini
     
     # def gini_coefficient(self, use_posttax=True):
@@ -106,21 +106,21 @@ class StaticTaxPolicy:
         gini_index = self.gini_coefficient()
         eq_value = 1 - (n / (n - 1)) * gini_index
         self.sim.equality[self.sim.t] = eq_value
-        print(f"Calculated Equality Measure: {eq_value}")
+        # print(f"Calculated Equality Measure: {eq_value}")
         return eq_value
 
     def calculate_productivity(self, use_posttax=True):
         # Sum of all incomes which represents the total productivity
         total_productivity = np.sum(agent.wealth for agent in self.grid.agents.values())
         self.sim.productivity[self.sim.t] = total_productivity
-        print(f"Total Productivity: {total_productivity}")
+        # print(f"Total Productivity: {total_productivity}")
         return total_productivity
 
     def calculate_social_welfare(self):
         # Calculate the social welfare by equality * productivity
         social_welfare = self.calculate_equality() * self.calculate_productivity()
         self.sim.social_welfare[self.sim.t] = social_welfare
-        print(f"Calculated Social Welfare: {social_welfare}")
+        # print(f"Calculated Social Welfare: {social_welfare}")
         return social_welfare
 
     def simulate_time_step(self, time_step):
