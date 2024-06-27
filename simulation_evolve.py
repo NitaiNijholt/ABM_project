@@ -3,18 +3,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import csv
-from intelligent_agent_dynamic_market import Agent
+from intelligent_agent import IntelligentAgent as Agent
+from intelligent_agent_dynamic_market import IntelligentAgent as OrderbookAgent
 from grid import Grid
 from market import Market
 from orderbook import OrderBooks
-from dynamic_tax_policy import DynamicTaxPolicy as TaxPolicy
+from static_tax_policy import StaticTaxPolicy
+from dynamic_tax_policy import DynamicTaxPolicy
 from scipy.stats import gamma, lognorm
 
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
-                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time=5, 
-                 save_file_path=None, tax_period=30, lifetime_distribution='gamma', income_per_timestep=1, show_time=False):
+                 lifetime_mean=80, lifetime_std=10, resource_spawn_rate=0.5, agent_spawn_period=10, order_expiry_time=5, 
+                 save_file_path=None, tax_period=9999, lifetime_distribution='gamma', income_per_timestep=1, show_time=False, dynamic_tax=True, dynamic_market=True):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """
@@ -31,7 +33,7 @@ class Simulation:
         self.taxes_paid_at_timesteps = {}
         self.lifetime_mean = lifetime_mean
         self.lifetime_std = lifetime_std
-        self.resource_spawn_period = resource_spawn_period
+        self.resource_spawn_rate = resource_spawn_rate
         self.agent_spawn_period = agent_spawn_period
         self.save_file_path = save_file_path
         self.tax_period = tax_period
@@ -46,7 +48,9 @@ class Simulation:
         self.social_welfare = {}
         self.total_discounted_welfare_change = {}
         self.mutation_probability = 0.001
-        self.k = 2
+        self.dynamic_tax = dynamic_tax
+        self.dynamic_market = dynamic_market
+        self.k = 3
 
         self.lifetime_distribution = lifetime_distribution
 
@@ -59,8 +63,8 @@ class Simulation:
         self.build = 0
 
         # Initialize Dynamic market
-        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time)
-        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time)
+        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time, self.agent_dict)
+        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time, self.agent_dict)
 
         # Initialize Static price market
         self.market = Market(wood_rate, stone_rate)
@@ -195,7 +199,10 @@ class Simulation:
             
         self.initial_wealth.append(wealth)
         
-        agent = Agent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep, network=network)
+        if self.dynamic_market:
+            agent = OrderbookAgent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep, network=network)
+        else:
+            agent = Agent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep, network=network)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
         self.agent_dict[agent_id] = 999999999
@@ -222,8 +229,7 @@ class Simulation:
                 'action': agent.current_action
             })
             agent.taxes_paid_at_timesteps.append(0)
-        if self.t % self.resource_spawn_period == 0:
-            self.spawn_resources()
+        self.spawn_resources()
         if self.t % self.tax_period == 0:
             self.tax_policy.apply_taxes()
         self.grid.update_house_incomes()
@@ -244,11 +250,14 @@ class Simulation:
 
         
     def run(self, show_time=False):
-        epochs = 5
+        epochs = 15
 
 
         self.show_time = show_time
-        self.tax_policy = TaxPolicy(self.grid, self)
+        if self.dynamic_tax:
+            self.tax_policy = DynamicTaxPolicy(self.grid, self)
+        else:
+            self.tax_policy = StaticTaxPolicy(self.grid, self)
         with open('agents.csv', 'w') as file:
             self.writer = csv.writer(file)
             for epoch in range(epochs):
@@ -261,18 +270,12 @@ class Simulation:
                 for agent in self.grid.agents.values():
                     agent.update_fitness()
                 
-                print(f'{np.around(self.build / self.num_agents / t_max, 3)}, {np.around(self.gathering / self.num_agents / t_max, 3)}, {np.around(self.moving / self.num_agents / t_max, 3)}, {np.around(self.buy / self.num_agents / t_max, 3)}, {np.around(self.sell / self.num_agents / t_max, 3)}')
-                self.action_failure = 0
+                print(f'{np.around(self.build / self.num_agents / t_max, 4)}, {np.around(self.gathering / self.num_agents / t_max, 4)}, {np.around(self.moving / self.num_agents / t_max, 4)}, {np.around(self.buy / self.num_agents / t_max, 4)}, {np.around(self.sell / self.num_agents / t_max, 4)}')
                 self.moving = 0
-                self.failed_moving = 0
                 self.gathering = 0
-                self.failed_gathering = 0
                 self.buy = 0
-                self.failed_buy = 0
                 self.sell = 0
-                self.failed_sell = 0
                 self.build = 0
-                self.failed_build = 0
                 self.reproduce()
                 print(f"########################################## NEW EPOCH {epoch + 1} ############################################")
 
@@ -297,12 +300,12 @@ class Simulation:
         # print(f"Number of wood resources: {num_wood}")
         # print(f"Number of stone resources: {num_stone}")
 
-        for _ in range(self.num_resources - num_stone):
+        for _ in range(int(self.resource_spawn_rate * (self.num_resources - num_stone))):
             stone_position = self.get_random_position()
             if self.grid.if_no_houses(stone_position):
                 self.grid.resource_matrix_stone[stone_position] += 1
 
-        for _ in range(self.num_resources - num_wood):
+        for _ in range(int(self.resource_spawn_rate * (self.num_resources - num_wood))):
             wood_position = self.get_random_position()
             if self.grid.if_no_houses(wood_position):
                 self.grid.resource_matrix_wood[wood_position] += 1

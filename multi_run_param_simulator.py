@@ -14,12 +14,14 @@ from simulation import Simulation
 
 
 class MultipleRunSimulator:
-    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no', evolve=False):
+    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no', evolve=False, dynamic_tax=True, dynamic_market=True):
         self.simulation_params = simulation_params
         self.num_runs = num_runs
         self.save_directory = save_directory
         self.do_feature_analysis = do_feature_analysis
         self.evolve = evolve
+        self.dynamic_tax = dynamic_tax
+        self.dynamic_market = dynamic_market
 
         if not os.path.exists(self.save_directory):
             os.makedirs(self.save_directory)
@@ -47,9 +49,9 @@ class MultipleRunSimulator:
                 print(f"Running simulation {run}/{self.num_runs} for parameter combination {combination_index}/{len(self.param_combinations)}...")
                 print(f"Parameters: {param_set}")
                 if self.evolve:
-                    sim = SimulationEvolve(**param_set)
+                    sim = SimulationEvolve(**param_set, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market)
                 else:
-                    sim = Simulation(**param_set)
+                    sim = Simulation(**param_set, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market)
                 sim.run()
                 self.save_run_data(sim.data, run, combination_index)
 
@@ -270,10 +272,9 @@ constant_params = {
     'num_resources': [50],
     'stone_rate': [1],
     'wood_rate': [1],
-    # 'lifetime_mean': [80],
-    # 'lifetime_std': [10],
-    # 'resource_spawn_period': [1],
-    # 'agent_spawn_period': [10],
+    'lifetime_mean': [80],
+    'lifetime_std': [10],
+    'resource_spawn_rate': [0.5],
     'order_expiry_time': [5],
     'save_file_path': [None],
     'tax_period': [30],
@@ -284,8 +285,10 @@ constant_params = {
 combined_params = {**constant_params}
 
 evolve=True
+dynamic_tax=True
+dynamic_market=False
 
-simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/dynamic', do_feature_analysis='yes', evolve=evolve)
+simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/dynamic', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market)
 simulator.run_simulations()
 aggregated_data, feature_importances = simulator.aggregate_results()
 
