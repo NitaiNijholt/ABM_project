@@ -6,7 +6,7 @@ from network import Network
 from numba import jit
 
 
-class Agent:
+class IntelligentAgent:
     def __init__(self, sim, agent_id, position, grid, market, creation_time, 
                  wealth=0, wood=0, stone=0, income_per_timestep=1, network=None):
         """
@@ -161,7 +161,7 @@ class Agent:
     def update_fitness(self):
         fitness = np.sum([
             self.wealth - self.initial_wealth, 
-        ]) * ((self.successful_actions  / (self.sim.t - self.creation_time)))
+        ])
         self.fitness = fitness
         self.sim.agent_dict[self.agent_id] = fitness
 
@@ -191,49 +191,31 @@ class Agent:
 
 
         # Ensure new position is within grid bounds
-        if self.grid.agent_matrix[new_position] == 0:
+        if self.grid.agent_matrix[new_position] == 0 or self.current_action=='stay':
             # Move the agent
             self.grid.agent_matrix[self.position] = 0
             self.grid.agent_matrix[new_position] = self.agent_id
             self.position = new_position
             self.sim.moving += 1
 
-            self.fitness *= self.punish_successful_move
-        
-        else:
-            self.current_action = 'failed move'
-            self.sim.action_failure += 1
-            self.sim.failed_moving += 1
-            self.fitness *= self.punish_move
-
     def gather(self):
         """
         Agent gathers resources from the current position.
         """
 
-        succeeded = False
         if self.grid.resource_matrix_wood[self.position] > 0:
             self.wood += 1
             self.grid.resource_matrix_wood[self.position] -= 1
             self.current_action = 'gather'
             self.gathered_at_timesteps.append(1)
-            succeeded = True
+            self.sim.gathering += 1
 
         if self.grid.resource_matrix_stone[self.position] > 0:
             self.stone += 1
             self.grid.resource_matrix_stone[self.position] -= 1
             self.gathered_at_timesteps.append(1)
             self.current_action = 'gather'
-            succeeded = True
-        
-        if not succeeded:
-            self.fitness *= self.punish_gather
-            self.current_action = 'failed gather'
-            self.sim.action_failure += 1
-            self.sim.failed_gathering += 1
-        else:
-             self.sim.gathering += 1
-             self.successful_actions += 1
+            self.sim.gathering += 1
         
         
         self.gathered_at_timesteps.append(0)
@@ -265,13 +247,7 @@ class Agent:
             self.currently_building_timesteps = 1
             self.current_action = 'start building'
             self.sim.build += 1
-            self.successful_actions += 1
-        #     self.fitness += 20
-        else:
-            self.fitness *= self.punish_build
-            self.current_action = 'failed building'
-            self.sim.failed_build += 1
-            self.sim.action_failure += 1
+
 
     def collect_income(self):
         """
@@ -287,7 +263,8 @@ class Agent:
             if self.currently_building_timesteps == self.required_building_time:
                 self.currently_building_timesteps = 0
                 self.build_house()
-                self.current_action = 'continue building'
+            self.current_action = 'continue building'
+            self.sim.build += 1
         else:
             inputs = np.array(self.get_inputs()).astype(np.float32).reshape(1, -1)
             outputs = self.model.forward(inputs)
@@ -295,18 +272,6 @@ class Agent:
             # Sort actions based on output values in descending order
             sorted_actions = np.argsort(outputs[0])[::-1]
 
-
-            actions = [
-                self.build,
-                self.gather,
-                lambda: self.move('up'),
-                lambda: self.move('down'),
-                lambda: self.move('left'),
-                lambda: self.move('right'),
-                lambda: self.move('stay'),
-                self.buy,
-                self.sell
-            ]
             
             # Iterate through actions in the order of their desirability
             for action in sorted_actions:
@@ -389,19 +354,15 @@ class Agent:
         wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
         stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
 
+        assert wood_to_buy >= 0, f'Cannot buy negative amount of wood, {wood_to_buy}, {self.wood}, {self.grid.house_cost[0]}'
+        assert stone_to_buy >= 0, 'Cannot buy negative amount of stone'
+
         if self.wealth >= (wood_to_buy * self.market.wood_rate + stone_to_buy * self.market.stone_rate) and (wood_to_buy > 0 or stone_to_buy > 0 ):
             self.current_action = 'buy'
 
             self.market.add_buyer(self, wood_to_buy, stone_to_buy)
             self.sim.buy += 1
-            self.successful_actions += 1
-        #     self.fitness += 10
-        
-        else:
-            self.fitness *= self.punish_buy
-            self.current_action = 'failed buy'
-            self.sim.action_failure += 1
-            self.sim.failed_buy += 1
+
 
     def sell(self):
         """
@@ -411,9 +372,4 @@ class Agent:
             self.market.add_seller(self, self.wood, self.stone)
             self.current_action = 'sell'
             self.sim.sell += 1
-            self.successful_actions += 1
-        else:
-            self.fitness *= self.punish_sell
-            self.current_action = 'failed sell'
-            self.sim.action_failure += 1
-            self.sim.failed_sell += 1
+

@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import csv
-from intelligent_agent import Agent
+from intelligent_agent import IntelligentAgent
 from intelligent_agent_dynamic_market import IntelligentAgent as OrderbookAgent
 from grid import Grid
 from market import Market
@@ -201,7 +201,7 @@ class Simulation:
         if self.dynamic_market:
             agent = OrderbookAgent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep, network=network)
         else:
-            agent = Agent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep, network=network)
+            agent = IntelligentAgent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep, network=network)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
         self.agent_dict[agent_id] = 999999999
