@@ -218,11 +218,11 @@ class Agent_static_market:
                 action_name = np.random.choice(list(self.earning_rates.keys()), p=logit_probs)
             except:
                 action_name = 'move'
+            self.current_action = action_name
             action = actions[list(self.earning_rates.keys()).index(action_name)]
             # action = actions[np.argmax(list(self.earning_rates.values()))]
             # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             action()
-            self.current_action = action.__name__
             
         self.wealth_over_time.append(self.wealth)
         self.houses_over_time.append(len(self.houses))
