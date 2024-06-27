@@ -15,7 +15,7 @@ from scipy.stats import gamma, lognorm
 
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
-                 lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time=5, 
+                 lifetime_mean=80, lifetime_std=10, resource_spawn_rate=0.5, agent_spawn_period=10, order_expiry_time=5, 
                  save_file_path=None, tax_period=9999, lifetime_distribution='gamma', income_per_timestep=1, show_time=False, dynamic_tax=True, dynamic_market=True):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
@@ -33,7 +33,7 @@ class Simulation:
         self.taxes_paid_at_timesteps = {}
         self.lifetime_mean = lifetime_mean
         self.lifetime_std = lifetime_std
-        self.resource_spawn_period = resource_spawn_period
+        self.resource_spawn_rate = resource_spawn_rate
         self.agent_spawn_period = agent_spawn_period
         self.save_file_path = save_file_path
         self.tax_period = tax_period
@@ -229,8 +229,7 @@ class Simulation:
                 'action': agent.current_action
             })
             agent.taxes_paid_at_timesteps.append(0)
-        if self.t % self.resource_spawn_period == 0:
-            self.spawn_resources()
+        self.spawn_resources()
         if self.t % self.tax_period == 0:
             self.tax_policy.apply_taxes()
         self.grid.update_house_incomes()
@@ -301,12 +300,12 @@ class Simulation:
         # print(f"Number of wood resources: {num_wood}")
         # print(f"Number of stone resources: {num_stone}")
 
-        for _ in range(self.num_resources - num_stone):
+        for _ in range(int(self.resource_spawn_rate * (self.num_resources - num_stone))):
             stone_position = self.get_random_position()
             if self.grid.if_no_houses(stone_position):
                 self.grid.resource_matrix_stone[stone_position] += 1
 
-        for _ in range(self.num_resources - num_wood):
+        for _ in range(int(self.resource_spawn_rate * (self.num_resources - num_wood))):
             wood_position = self.get_random_position()
             if self.grid.if_no_houses(wood_position):
                 self.grid.resource_matrix_wood[wood_position] += 1

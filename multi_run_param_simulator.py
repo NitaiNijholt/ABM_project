@@ -272,10 +272,9 @@ constant_params = {
     'num_resources': [50],
     'stone_rate': [1],
     'wood_rate': [1],
-    # 'lifetime_mean': [80],
-    # 'lifetime_std': [10],
-    # 'resource_spawn_period': [1],
-    # 'agent_spawn_period': [10],
+    'lifetime_mean': [80],
+    'lifetime_std': [10],
+    'resource_spawn_rate': [0.5],
     'order_expiry_time': [5],
     'save_file_path': [None],
     'tax_period': [30],
@@ -285,9 +284,9 @@ constant_params = {
 # Combine the two dictionaries
 combined_params = {**constant_params}
 
-evolve=False
+evolve=True
 dynamic_tax=True
-dynamic_market=True
+dynamic_market=False
 
 simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/dynamic', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market)
 simulator.run_simulations()
