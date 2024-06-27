@@ -61,7 +61,8 @@ class DynamicTaxPolicy:
         for agent_idx, agent in enumerate(self.grid.agents.values()):
             tax = self.calculate_tax(agent_idx)
             if agent.wealth < tax:
-                print(agent.agent_id, tax, agent.wealth)
+                pass
+                # print(agent.agent_id, tax, agent.wealth)
             agent.wealth -= tax
             taxes.append(tax)
             total_tax_collected += tax

@@ -317,7 +317,7 @@ class Agent_static_market:
         if self.grid.resource_matrix_wood[self.position] == 0 and self.grid.resource_matrix_stone[self.position] == 0:
             return -np.inf
 
-        earning_rate = self.market.wood_rate * max(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * max(1, self.grid.resource_matrix_stone[self.position])
+        earning_rate = self.market.wood_rate * min(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * min(1, self.grid.resource_matrix_stone[self.position])
         earning_rate = self.posttax_extra_income(earning_rate)
         return float(earning_rate)
 
