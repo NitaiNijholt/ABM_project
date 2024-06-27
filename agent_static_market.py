@@ -214,7 +214,10 @@ class Agent_static_market:
             }
             # print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
             logit_probs = [self.logit_prob(EV, list(self.earning_rates.values())) for EV in self.earning_rates.values()]
-            action_name = np.random.choice(list(self.earning_rates.keys()), p=logit_probs)
+            try:
+                action_name = np.random.choice(list(self.earning_rates.keys()), p=logit_probs)
+            except:
+                action_name = 'move'
             action = actions[list(self.earning_rates.keys()).index(action_name)]
             # action = actions[np.argmax(list(self.earning_rates.values()))]
             # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
@@ -268,7 +271,7 @@ class Agent_static_market:
         Calculate the earning rate of building a house.
         """
         if self.grid.house_cost[0] > self.wood or self.grid.house_cost[1] > self.stone or self.grid.house_matrix[self.position] >= self.grid.max_house_num:
-            return 0
+            return -1000000
 
         age = self.sim.t - self.creation_time
         total_income = self.income_per_timestep * self.grid.house_incomes[self.position] * (self.guessed_lifetime - age - self.required_building_time)
@@ -284,13 +287,13 @@ class Agent_static_market:
         cost = self.market.wood_rate * num_wood_to_buy + self.market.stone_rate * num_stone_to_buy
 
         if num_wood_to_buy == 0 and num_stone_to_buy == 0:
-            return 0
+            return -1000000
 
         if cost > self.wealth:
-            return 0
+            return -1000000
 
         if num_wood_to_buy > self.market.wood or num_stone_to_buy > self.market.stone:
-            return 0
+            return -1000000
 
         age = self.sim.t - self.creation_time
         required_time = self.required_building_time + 1
@@ -302,7 +305,7 @@ class Agent_static_market:
         Calculate the earning rate of selling resources.
         """
         if self.wood == 0 and self.stone == 0:
-            return 0
+            return -1000000
         earning_rate = self.market.wood_rate * self.wood + self.market.stone_rate * self.stone
         earning_rate = self.posttax_extra_income(earning_rate)
         return earning_rate
@@ -312,7 +315,7 @@ class Agent_static_market:
         Calculate the earning rate of gathering resources in the current position.
         """
         if self.grid.resource_matrix_wood[self.position] == 0 and self.grid.resource_matrix_stone[self.position] == 0:
-            return 0
+            return -1000000
 
         earning_rate = self.market.wood_rate * max(1, self.grid.resource_matrix_wood[self.position]) + self.market.stone_rate * max(1, self.grid.resource_matrix_stone[self.position])
         earning_rate = self.posttax_extra_income(earning_rate)
