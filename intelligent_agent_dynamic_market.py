@@ -4,9 +4,10 @@ from house import House
 import sys
 from network import Network
 from numba import jit
+from agent import Agent
 
 
-class Agent:
+class IntelligentAgent(Agent):
     def __init__(self, sim, agent_id, position, grid, market, creation_time, 
                  wealth=0, wood=0, stone=0, income_per_timestep=1, network=None):
         """
@@ -40,38 +41,16 @@ class Agent:
         lifetime_std : float
             Standard deviation of the lifetime distribution.
         """
-        self.agent_id = agent_id
-        self.position = position
-        self.initial_wealth = wealth
-        self.wealth = max(wealth, 0)
+
+        super().__init__(sim, agent_id, position, grid, market, creation_time, 
+                 wealth, wood, stone, income_per_timestep=income_per_timestep)
+
 
         self.fitness = wealth + stone * market.stone_rate + wood * market.wood_rate
-        self.wood = wood
-        self.stone = stone
-        self.grid = grid
-        self.market = market
-        self.houses = []
-        self.creation_time = creation_time
-        self.sim = sim
-        self.income_per_timestep = income_per_timestep
 
-        self.currently_building_timesteps = 0
-        self.required_building_time = 5
-        self.current_action = 'Nothing'
-        self.earning_rates = {}
-        self.best_position = 0
-
-        self.wealth_over_time = []
-        self.houses_over_time = []
-        self.gathered_at_timesteps = []
-        self.bought_at_timesteps = []
-        self.sold_at_timesteps = []
-        self.taxes_paid_at_timesteps = []
         self.tax_paid_last_time = 0
         self.welfare_gotten_last_time = 0
-        self.income = 0  # New attribute to track income
-        self.order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
-        self.guessed_lifetime = sim.generate_lifetime()
+        self.initial_wealth = wealth
 
         self.punish_move = 1
         self.punish_gather = 1
@@ -100,6 +79,11 @@ class Agent:
         
         self.model = self.build_model()
         
+        self.order_limit = 1
+        self.order_cooldown_period = 5
+        self.orders_placed = 0
+        self.last_order_time = -self.order_cooldown_period
+        
     def build_model(self):
         model = Network(self.input_size,
                         self.hidden_size,
@@ -108,6 +92,7 @@ class Agent:
                         self.network)
     
         return model
+    
     
     def get_inputs(self):
         initial_inputs = np.array([
@@ -219,19 +204,6 @@ class Agent:
         
         self.gathered_at_timesteps.append(0)
 
-    def build_house(self):
-        """
-        Agent completes the construction of a house
-        """
-        
-        self.grid.house_matrix[self.position] += 1
-        house = House(self.agent_id, self.position)
-        self.houses.append(house)
-        if self.position not in self.grid.houses:
-            self.grid.houses[self.position] = [house]
-        else:
-            self.grid.houses[self.position].append(house)
-        # print(f"Agent {self.agent_id} completed building a house at {self.position}")
 
     def build(self):
         """
@@ -247,14 +219,6 @@ class Agent:
             self.current_action = 'start building'
             self.sim.build += 1
 
-
-    def collect_income(self):
-        """
-        Agent collects income from all houses.
-        """
-        income_collected = sum(self.grid.house_incomes[house.position] for house in self.houses) * self.income_per_timestep
-        self.wealth += income_collected
-        self.income = income_collected  # Track the income
 
     def step(self):
         if self.currently_building_timesteps > 0:
@@ -285,11 +249,11 @@ class Agent:
                 elif action == 7:
                     wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
                     stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
-                    if self.wealth >= (wood_to_buy * self.market.wood_rate + stone_to_buy * self.market.stone_rate) and (wood_to_buy > 0 or stone_to_buy > 0):
+                    if self.can_place_order() and self.wealth >= (wood_to_buy * self.market.wood_rate + stone_to_buy * self.market.stone_rate) and (wood_to_buy > 0 or stone_to_buy > 0):
                         if self.buy():
                             break
                 elif action == 8:
-                    if self.wood > 0 or self.stone > 0:
+                    if self.can_place_order() and self.wood > 0 or self.stone > 0:
                         self.sell()
                         break
                 else:
@@ -351,17 +315,21 @@ class Agent:
         # Only buy if agent has enough wealth to affort it
         wood_to_buy = max(0, self.grid.house_cost[0] - self.wood)
         stone_to_buy = max(0, self.grid.house_cost[1] - self.stone)
-        wood_price = min(self.determine_price('buy', 'wood'), self.wealth * wood_to_buy / (wood_to_buy + stone_to_buy))
-        stone_price = min(self.determine_price('buy', 'stone'), self.wealth * stone_to_buy / (wood_to_buy + stone_to_buy))
+        determined_price_wood = self.determine_price('buy', 'wood')
+        determined_price_stone = self.determine_price('buy', 'stone')
 
-        if self.wealth >= (wood_to_buy * wood_price + stone_to_buy * stone_price) and (wood_to_buy > 0 or stone_to_buy > 0 ):
-            self.current_action = 'buy'
+        if determined_price_stone and determined_price_wood:
+            wood_price = min(determined_price_wood, self.wealth * wood_to_buy / (wood_to_buy + stone_to_buy))
+            stone_price = min(determined_price_stone, self.wealth * stone_to_buy / (wood_to_buy + stone_to_buy))
 
-            self.place_order(self.order_books, 'wood', 'buy', price = wood_price, quantity = wood_to_buy)
-            self.place_order(self.order_books, 'stone', 'buy', price = stone_price, quantity = stone_to_buy)
+            if self.wealth >= (wood_to_buy * wood_price + stone_to_buy * stone_price) and (wood_to_buy > 0 or stone_to_buy > 0 ):
+                self.current_action = 'buy'
 
-            self.sim.buy += 1
-            return True
+                self.place_order(self.order_books, 'wood', 'buy', price = wood_price, quantity = wood_to_buy)
+                self.place_order(self.order_books, 'stone', 'buy', price = stone_price, quantity = stone_to_buy)
+
+                self.sim.buy += 1
+                return True
         return False
 
 
@@ -373,12 +341,24 @@ class Agent:
         if self.wood > 0 or self.stone > 0:
             wood_price = self.determine_price('sell', 'wood')
             stone_price = self.determine_price('sell', 'stone')
-            self.market.add_seller(self, self.wood, self.stone)
-            self.current_action = 'sell'
-            self.sim.sell += 1
-            self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
-            self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
+            if wood_price and stone_price:
+                self.current_action = 'sell'
+                self.sim.sell += 1
+                self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
+                self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
 
+
+    def can_place_order(self):
+        """
+        Check if the agent can place an order based on the order limit and cooldown period.
+        """
+        current_timestep = self.sim.t
+        if self.orders_placed < self.order_limit:
+            return True
+        if current_timestep - self.last_order_time >= self.order_cooldown_period:
+            self.orders_placed = 0
+            return True
+        return False
 
     def place_order(self, order_books, resource_type, order_type, price, quantity):
         """
@@ -398,6 +378,7 @@ class Agent:
         quantity : int
             The amount of the resource to trade.
         """
+
         if resource_type not in order_books:
             raise ValueError(f"Invalid resource type: {resource_type}")
 
@@ -412,46 +393,21 @@ class Agent:
         else:
             raise ValueError(f"Invalid order type: {order_type}")
 
-        # Log the order placement for debugging
+        self.orders_placed += 1
+        self.last_order_time = self.sim.t
+
+        # # Log the order placement for debugging
         # print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
 
-    def update_prices(self, order_type):
-        assert order_type in ('sell', 'buy'), 'Takes in "buy" or "sell" only'
-
-        age = self.sim.t - self.creation_time
-        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
-        earning_rate = total_income / self.required_building_time
-        m_price = earning_rate / sum(self.grid.house_cost)
-
-        ob_prices = {
-            'wood': self.sim.wood_order_book.check_price(),
-            'stone': self.sim.stone_order_book.check_price()
-        }
-
-        for resource in ob_prices:
-            ob_price_bid, ob_price_ask = ob_prices[resource]
-            if order_type == 'sell':
-                if ob_price_bid is not None:
-                    rate = max(ob_price_bid, m_price)
-                else:
-                    rate = m_price
-            else:
-                if ob_price_ask is not None:
-                    rate = min(ob_price_ask, m_price)
-                else:
-                    rate = m_price
-
-            if resource == 'wood':
-                self.market.wood_rate = rate
-            elif resource == 'stone':
-                self.market.stone_rate = rate
 
         
     def determine_price(self, order_type, resource):
         age = self.sim.t - self.creation_time
-        total_income = self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time)
+        total_income = max(self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time), 0)
+        if total_income == 0:
+            return None
         earning_rate = total_income / self.required_building_time
-        m_price = earning_rate / sum(self.grid.house_cost)
+        m_price = earning_rate / sum(self.grid.house_cost) #* 10**(np.random.normal(0, 0.01)), 1)
 
         ob_price_wood_bid, ob_price_wood_ask = self.sim.wood_order_book.check_price()
         ob_price_stone_bid, ob_price_stone_ask = self.sim.stone_order_book.check_price()
