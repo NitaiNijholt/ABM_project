@@ -41,7 +41,7 @@ class Agent(Agent_static_market):
         super().__init__(sim, agent_id, position, grid, market, creation_time, wealth, wood, stone, lifetime_distribution, lifetime_mean, lifetime_std, income_per_timestep)
         self.order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
         self.amount_orders = 0
-        self.limit = 1
+        self.limit = 4
         
 
     def step(self):
@@ -64,15 +64,7 @@ class Agent(Agent_static_market):
                 'gather': self.earning_rate_gathering()
             }
 #             print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
-            # action_index = np.argmax(list(self.earning_rates.values()))
-            # action = actions[action_index]
-            logit_probs = self.logit_prob(list(self.earning_rates.values()))
-            try:
-                action_name = np.random.choice(list(self.earning_rates.keys()), p=logit_probs)
-            except:
-                action_name = 'move'
-            self.current_action = action_name
-            action_index = list(self.earning_rates.keys()).index(action_name)
+            action_index = np.argmax(list(self.earning_rates.values()))
             action = actions[action_index]
             
             if action.__name__ == 'buy' or action.__name__ == 'sell':
@@ -87,11 +79,13 @@ class Agent(Agent_static_market):
 #             print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             list_sell = ['build', 'sell', 'gather']
             if action.__name__ in list_sell:
-                self.amount_orders += 1
                 self.update_prices('sell')
             elif action.__name__ == 'buy':
-                self.amount_orders += 1
                 self.update_prices('buy')
+#             if self.amount_orders < 0:
+#                 print(action.__name__, self.amount_orders)
+#             if self.amount_orders > 5:
+#                 print(action.__name__, self.wood, self.stone,  self.amount_orders)
                 
             action()
 #             self.current_action = action.__name__
@@ -148,10 +142,8 @@ class Agent(Agent_static_market):
         wood_price = self.determine_price('sell', 'wood')
         stone_price = self.determine_price('sell', 'stone')
         if wood_price and stone_price:
-            if self.wood > 0:
-                self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
-            if self.stone > 0:
-                self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
+            self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
+            self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
 
     def place_order(self, order_books, resource_type, order_type, price, quantity):
         """
@@ -173,15 +165,15 @@ class Agent(Agent_static_market):
         """
         if resource_type not in order_books:
             raise ValueError(f"Invalid resource type: {resource_type}")
-
         order_book = order_books[resource_type]
-
         if order_type == 'buy':
             for _ in range(quantity):
                 order_book.place_bid(self.agent_id, price)
+                self.amount_orders += 1
         elif order_type == 'sell':
             for _ in range(quantity):
                 order_book.place_ask(self.agent_id, price)
+                self.amount_orders += 1
         else:
             raise ValueError(f"Invalid order type: {order_type}")
 
