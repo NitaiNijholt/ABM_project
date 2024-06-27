@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import json
 import csv
 from agent import Agent
+from agent_static_market import Agent_static_market
 # from agent_static_market import Agent_static_market as Agent
 from grid import Grid
 from market import Market
@@ -15,7 +16,7 @@ from dynamic_tax_policy import DynamicTaxPolicy
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
                  lifetime_mean=80, lifetime_std=10, resource_spawn_rate=0.5, order_expiry_time=5, 
-                 save_file_path=None, tax_period=1, income_per_timestep=1, show_time=False, dynamic_tax=True):
+                 save_file_path=None, tax_period=1, income_per_timestep=1, show_time=False, dynamic_tax=True, dynamic_market=True):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """
@@ -46,6 +47,7 @@ class Simulation:
         self.social_welfare = {}
         self.total_discounted_welfare_change = {}
         self.dynamic_tax = dynamic_tax
+        self.dynamic_market = dynamic_market
 
         # Initialize Dynamic market
         self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time, self.grid.agents)
@@ -102,7 +104,10 @@ class Simulation:
             
         self.initial_wealth.append(wealth)
         
-        agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep)
+        if self.dynamic_market:
+            agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep)
+        else:
+            agent = Agent_static_market(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
 

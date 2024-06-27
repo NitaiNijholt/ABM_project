@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import json
 import csv
 from intelligent_agent import IntelligentAgent as Agent
+from intelligent_agent_dynamic_market import IntelligentAgent as OrderbookAgent
 from grid import Grid
 from market import Market
 from orderbook import OrderBooks
@@ -15,7 +16,7 @@ from scipy.stats import gamma, lognorm
 class Simulation:
     def __init__(self, num_agents, grid, n_timesteps=1, num_resources=0, wood_rate=1, stone_rate=1, 
                  lifetime_mean=80, lifetime_std=10, resource_spawn_period=1, agent_spawn_period=10, order_expiry_time=5, 
-                 save_file_path=None, tax_period=9999, lifetime_distribution='gamma', income_per_timestep=1, show_time=False, dynamic_tax=True):
+                 save_file_path=None, tax_period=9999, lifetime_distribution='gamma', income_per_timestep=1, show_time=False, dynamic_tax=True, dynamic_market=True):
         """
         order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
         """
@@ -48,6 +49,7 @@ class Simulation:
         self.total_discounted_welfare_change = {}
         self.mutation_probability = 0.001
         self.dynamic_tax = dynamic_tax
+        self.dynamic_market = dynamic_market
         self.k = 3
 
         self.lifetime_distribution = lifetime_distribution
@@ -197,7 +199,10 @@ class Simulation:
             
         self.initial_wealth.append(wealth)
         
-        agent = Agent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep, network=network)
+        if self.dynamic_market:
+            agent = OrderbookAgent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep, network=network)
+        else:
+            agent = Agent(self, agent_id, position, self.grid, self.market, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep, network=network)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
         self.agent_dict[agent_id] = 999999999
