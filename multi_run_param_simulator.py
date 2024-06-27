@@ -9,14 +9,17 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from sklearn.cluster import AgglomerativeClustering
 from agent import Agent
 from grid import Grid
+from simulation_evolve import Simulation as SimulationEvolve
 from simulation import Simulation
 
+
 class MultipleRunSimulator:
-    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no'):
+    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no', evolve=False):
         self.simulation_params = simulation_params
         self.num_runs = num_runs
         self.save_directory = save_directory
         self.do_feature_analysis = do_feature_analysis
+        self.evolve = evolve
 
         if not os.path.exists(self.save_directory):
             os.makedirs(self.save_directory)
@@ -43,7 +46,10 @@ class MultipleRunSimulator:
             for run in range(1, self.num_runs + 1):
                 print(f"Running simulation {run}/{self.num_runs} for parameter combination {combination_index}/{len(self.param_combinations)}...")
                 print(f"Parameters: {param_set}")
-                sim = Simulation(**param_set)
+                if self.evolve:
+                    sim = SimulationEvolve(**param_set)
+                else:
+                    sim = Simulation(**param_set)
                 sim.run()
                 self.save_run_data(sim.data, run, combination_index)
 
@@ -277,7 +283,9 @@ constant_params = {
 # Combine the two dictionaries
 combined_params = {**constant_params}
 
-simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/dynamic', do_feature_analysis='yes')
+evolve=True
+
+simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/dynamic', do_feature_analysis='yes', evolve=evolve)
 simulator.run_simulations()
 aggregated_data, feature_importances = simulator.aggregate_results()
 
