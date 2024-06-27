@@ -214,7 +214,8 @@ class Agent_static_market:
             }
             # print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
             logit_probs = [self.logit_prob(EV, list(self.earning_rates.values())) for EV in self.earning_rates.values()]
-            action = np.random.choice(list(self.earning_rates.values()), p=logit_probs)
+            action_name = np.random.choice(list(self.earning_rates.keys()), p=logit_probs)
+            action = actions[list(self.earning_rates.keys()).index(action_name)]
             # action = actions[np.argmax(list(self.earning_rates.values()))]
             # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             action()
