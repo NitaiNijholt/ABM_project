@@ -25,13 +25,13 @@ class OrderBooks:
     def place_bid(self, agent_id, price):
         # Debug print
         # print(f"Placing bid: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
-        self.bids.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
+        # self.bids.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
         self.match_orders('bid')
 
     def place_ask(self, agent_id, price):
         # Debug print
         # print(f"Placing ask: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
-        self.asks.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
+        # self.asks.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
         self.match_orders('ask')
 
     def check_price(self):
@@ -88,7 +88,7 @@ class OrderBooks:
                 self.asks.pop(0)
 
                 # Debug print
-                print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
+                # print('TRANSACTION HAPPENED:', {'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
                 self.transactions.append({'buyer': best_bid['agent_id'], 'seller': best_ask['agent_id'], 'price': price})
             else:
                 break
@@ -125,7 +125,7 @@ class OrderBooks:
             self.agents[agent_id].amount_orders -= 1
 
             # Debug print
-            print(f"Order expired: Agent {agent_id}, Price {order['price']}, Resource {self.resource_type}, Type {order_type}")
+            # print(f"Order expired: Agent {agent_id}, Price {order['price']}, Resource {self.resource_type}, Type {order_type}")
             return True
         return False
 
