@@ -14,12 +14,13 @@ from simulation import Simulation
 
 
 class MultipleRunSimulator:
-    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no', evolve=False):
+    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no', evolve=False, dynamic_tax=True):
         self.simulation_params = simulation_params
         self.num_runs = num_runs
         self.save_directory = save_directory
         self.do_feature_analysis = do_feature_analysis
         self.evolve = evolve
+        self.dynamic_tax = dynamic_tax
 
         if not os.path.exists(self.save_directory):
             os.makedirs(self.save_directory)
@@ -47,9 +48,9 @@ class MultipleRunSimulator:
                 print(f"Running simulation {run}/{self.num_runs} for parameter combination {combination_index}/{len(self.param_combinations)}...")
                 print(f"Parameters: {param_set}")
                 if self.evolve:
-                    sim = SimulationEvolve(**param_set)
+                    sim = SimulationEvolve(**param_set, dynamic_tax=dynamic_tax)
                 else:
-                    sim = Simulation(**param_set)
+                    sim = Simulation(**param_set, dynamic_tax=dynamic_tax)
                 sim.run()
                 self.save_run_data(sim.data, run, combination_index)
 
@@ -283,9 +284,10 @@ constant_params = {
 # Combine the two dictionaries
 combined_params = {**constant_params}
 
-evolve=True
+evolve=False
+dynamic_tax=True
 
-simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/dynamic', do_feature_analysis='yes', evolve=evolve)
+simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/dynamic', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax)
 simulator.run_simulations()
 aggregated_data, feature_importances = simulator.aggregate_results()
 
