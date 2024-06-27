@@ -21,10 +21,10 @@ class StaticTaxPolicy:
         self.pretax_incomes = [agent.income for agent in self.grid.agents.values()]
         self.posttax_incomes = self.pretax_incomes.copy()
         # Determine income brackets based on quantiles
-        percentiles = [10, 30, 50, 70, 90, 100]
+        percentiles = [5.12, 65.67, 96.93, 100]
         quartiles = np.percentile(self.pretax_incomes, percentiles)
         # print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
-        tax_rates = [0.1, 0.15, 0.2, 0.25, 0.35, 0.45]
+        tax_rates = [0, 0.1903, 0.3693, 0.4950]
 
         # Create a list of (upper_bound, tax_rate) tuples
         tax_brackets = [(quartiles[i], tax_rates[i]) for i in range(len(quartiles))]
