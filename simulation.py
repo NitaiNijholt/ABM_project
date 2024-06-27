@@ -226,7 +226,26 @@ class Simulation:
             df = self.load_results(file_path)
         else:
             df = pd.DataFrame(self.data)
+        
+        # Plot Market price over time
+        price_history_wood = []
+        price_history_stone = []
+        for transaction in self.wood_order_book.transactions:
+            price_history_wood.append(transaction['price'])
+        for transaction in self.stone_order_book.transactions:
+            price_history_stone.append(transaction['price'])
 
+        # Plotting the price history
+        plt.figure(figsize=(10, 6))
+        plt.plot(price_history_wood, marker='o', linestyle='-', color='b', label = 'wood')
+        plt.plot(price_history_stone, marker='o', linestyle='-', color='b', label ='stone')
+        plt.title('Price History of Wood Transactions')
+        plt.xlabel('Transaction Index')
+        plt.ylabel('Price')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+        
         # Plot wealth over time
         for agent_id in df['agent_id'].unique():
             agent_data = df[df['agent_id'] == agent_id]
