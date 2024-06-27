@@ -13,7 +13,7 @@ start = time.time()
 height = 100
 width = 100
 num_agents = 100
-n_timesteps = 500
+n_timesteps = 1000
 num_resources = 1500
 house_cost = (10, 10)  # Define the cost of building a house
 lifetime_mean = 100
@@ -28,7 +28,7 @@ grid = Grid(width, height, house_cost)
 
 filepath = 'data/test_stuff_2.csv'
 
-dynamic_tax = True
+dynamic_tax = False
 dynamic_market = True
 # Initialize simulation
 sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, num_resources=num_resources, wood_rate=wood_rate, lifetime_mean=lifetime_mean, lifetime_std=lifetime_std, stone_rate=stone_rate, income_per_timestep=income_per_timestep, save_file_path=filepath, show_time=True, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market)

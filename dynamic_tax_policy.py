@@ -60,11 +60,10 @@ class DynamicTaxPolicy:
         taxes = []
         for agent_idx, agent in enumerate(self.grid.agents.values()):
             tax = self.calculate_tax(agent_idx)
-            if agent.wealth < tax:
-                print(agent.agent_id, tax, agent.wealth)
-            agent.wealth -= tax
-            taxes.append(tax)
-            total_tax_collected += tax
+            if agent.wealth - tax >= 0:
+                agent.wealth -= tax
+                taxes.append(tax)
+                total_tax_collected += tax
             # print(f"Agent {agent.agent_id} pays tax {tax} with remaining wealth {agent.wealth}.")
 
 
@@ -79,6 +78,7 @@ class DynamicTaxPolicy:
         # Update posttax incomes after taxes are collected and distributed
         for idx, agent in enumerate(self.grid.agents.values()):
             self.posttax_incomes[idx] = self.pretax_incomes[idx] - taxes[idx] + redistribution_amount
+            agent.income += redistribution_amount
             # print(f"Agent {agent.agent_id} has posttax income {self.posttax_incomes[idx]}.")
         
         current_welfare = self.calculate_social_welfare()
