@@ -118,6 +118,11 @@ class Simulation:
 
     def timestep(self):
         self.t += 1
+
+        if self.t % 100 == 0:
+            print(f"Current timestep: {self.t}")
+
+            
         agents = list(self.grid.agents.values())
         
         # Update order books with current agents' state
