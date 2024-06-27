@@ -11,6 +11,12 @@ from market import Market
 from orderbook import OrderBooks
 from static_tax_policy import StaticTaxPolicy
 from dynamic_tax_policy import DynamicTaxPolicy
+import psutil
+
+def print_memory_usage():
+    process = psutil.Process()
+    mem_info = process.memory_info()
+    print(f"RSS: {mem_info.rss / 1024 ** 2:.2f} MB, VMS: {mem_info.vms / 1024 ** 2:.2f} MB")
 
 
 class Simulation:
@@ -123,6 +129,10 @@ class Simulation:
             print(f"Current timestep: {self.t}")
 
             
+        # if self.t % 100 == 0:
+        #     print_memory_usage()
+        #     print(f"Timestep: {self.t}")
+
         agents = list(self.grid.agents.values())
         
         # Update order books with current agents' state
