@@ -8,7 +8,7 @@ class DynamicTaxPolicy:
         self.discount_rate = discount_rate
         self.pretax_incomes = []
         self.posttax_incomes = []
-        self.base_tax_rates = [0.1, 0.15, 0.2, 0.25, 0.35, 0.45]
+        self.base_tax_rates = [0, 0.1903, 0.3693, 0.4950]
         self.tax_brackets = []
         self.previous_welfare = 0
         self.total_discounted_welfare_change = 0
@@ -23,18 +23,18 @@ class DynamicTaxPolicy:
         current_std_dev = np.std(income_values)
 
         # Initialize the adjustment factors to zero (no change)
-        adjustment_factors = [0, 0, 0, 0, 0, 0]
+        adjustment_factors = [0, 0, 0, 0]
 
         # Check if the standard deviation of income is above the threshold
         if current_std_dev > self.std_dev_threshold:
             # Adjust tax rates based on quartiles: more for higher wealth, less for lower wealth
-            adjustment_factors = [-0.1, -0.08, -0.05, 0.05, 0.1, 0.2]
+            adjustment_factors = [0, -0.1, 0.04, 0.1]
         
         # Calculate adjusted tax rates
         adjusted_tax_rates = [max(0, rate + adj) for rate, adj in zip(self.base_tax_rates, adjustment_factors)]
         
         # Define income quartiles and assign adjusted tax rates
-        percentiles = [10, 30, 50, 70, 90, 100]
+        percentiles = [5.12, 65.67, 96.93, 100]
         quartiles = np.percentile(income_values, percentiles)
         # print("Calculated quartiles:", quartiles)  # Print the quartiles for reference
         self.tax_brackets = [(quartiles[i], adjusted_tax_rates[i]) for i in range(len(quartiles))]
