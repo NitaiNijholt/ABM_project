@@ -6,7 +6,7 @@ import random
 
 class Agent_static_market:
     def __init__(self, sim, agent_id, position, grid, market, creation_time, 
-                 wealth=0, wood=0, stone=0, lifetime_distribution='gamma', lifetime_mean=80, lifetime_std=10, income_per_timestep=1):
+                 wealth=0, wood=0, stone=0, lifetime_distribution='gamma', lifetime_mean=80, lifetime_std=10, income_per_timestep=1, _lambda=1):
         """
         Initialize agent with given position, wealth, wood, stone, grid, market, life expectancy, and creation time.
 
@@ -49,6 +49,7 @@ class Agent_static_market:
         self.creation_time = creation_time
         self.sim = sim
         self.income_per_timestep = income_per_timestep
+        self._lambda = _lambda
 
         self.currently_building_timesteps = 0
         self.required_building_time = 5
@@ -212,7 +213,9 @@ class Agent_static_market:
                 'gather': self.earning_rate_gathering()
             }
             # print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
-            action = actions[np.argmax(list(self.earning_rates.values()))]
+            logit_probs = [self.logit_prob(EV, list(self.earning_rates.values())) for EV in self.earning_rates.values()]
+            action = np.random.choice(list(self.earning_rates.values()), p=logit_probs)
+            # action = actions[np.argmax(list(self.earning_rates.values()))]
             # print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             action()
             self.current_action = action.__name__
@@ -416,3 +419,9 @@ class Agent_static_market:
         # total_posttax_income = self.income + extra_income - tax2
 
         return extra_income + tax1 - tax2
+
+    def logit_prob(self, EV, EVs):
+        """
+        Calculate the probability of taking an action based on the expected value of the action.
+        """
+        return np.exp(self._lambda * EV) / sum([np.exp(self._lambda * EV) for EV in EVs])
