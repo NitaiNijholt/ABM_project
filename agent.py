@@ -41,7 +41,7 @@ class Agent(Agent_static_market):
         super().__init__(sim, agent_id, position, grid, market, creation_time, wealth, wood, stone, lifetime_distribution, lifetime_mean, lifetime_std, income_per_timestep)
         self.order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
         self.amount_orders = 0
-        self.limit = 4
+        self.limit = 1
         
 
     def step(self):
@@ -67,7 +67,7 @@ class Agent(Agent_static_market):
             action_index = np.argmax(list(self.earning_rates.values()))
             action = actions[action_index]
             
-            if action.__name__ == 'buy':
+            if action.__name__ == 'buy' or action.__name__ == 'sell':
                 if self.amount_orders >= self.limit:
                     # print('LIMIT HIT')
                     earning_rates_values = list(self.earning_rates.values())
@@ -79,6 +79,7 @@ class Agent(Agent_static_market):
 #             print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             list_sell = ['build', 'sell', 'gather']
             if action.__name__ in list_sell:
+                self.amount_orders += 1
                 self.update_prices('sell')
             elif action.__name__ == 'buy':
                 self.amount_orders += 1
@@ -139,8 +140,10 @@ class Agent(Agent_static_market):
         wood_price = self.determine_price('sell', 'wood')
         stone_price = self.determine_price('sell', 'stone')
         if wood_price and stone_price:
-            self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
-            self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
+            if self.wood > 0:
+                self.place_order(self.order_books, 'wood', 'sell', price = wood_price, quantity = self.wood)
+            if self.stone > 0:
+                self.place_order(self.order_books, 'stone', 'sell', price = stone_price, quantity = self.stone)
 
     def place_order(self, order_books, resource_type, order_type, price, quantity):
         """

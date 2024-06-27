@@ -25,13 +25,13 @@ class OrderBooks:
     def place_bid(self, agent_id, price):
         # Debug print
         # print(f"Placing bid: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
-        # self.bids.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
+        self.bids.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
         self.match_orders('bid')
 
     def place_ask(self, agent_id, price):
         # Debug print
         # print(f"Placing ask: Agent {agent_id}, Price {price}, Resource {self.resource_type}")
-        # self.asks.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
+        self.asks.append({'agent_id': agent_id, 'price': price, 'timestamp': self.current_timestep})
         self.match_orders('ask')
 
     def check_price(self):

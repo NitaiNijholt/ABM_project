@@ -40,7 +40,7 @@ class Agent_static_market:
         """
         self.agent_id = agent_id
         self.position = position
-        self.wealth = wealth
+        self.wealth = max(0, wealth)
         self.wood = wood
         self.stone = stone
         self.grid = grid
