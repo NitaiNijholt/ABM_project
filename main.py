@@ -1,5 +1,5 @@
 from grid import Grid
-from simulation_evolve import Simulation
+from simulation import Simulation
 import time
 import matplotlib.pyplot as plt
 
@@ -13,26 +13,28 @@ start = time.time()
 height = 100
 width = 100
 num_agents = 100
-n_timesteps = 5000
-num_resources = 500
+n_timesteps = 500
+num_resources = 1500
 house_cost = (10, 10)  # Define the cost of building a house
-lifetime_mean = 200
-lifetime_std = 10
+lifetime_mean = 100
+lifetime_std = 20
 
-wood_rate = 10  # Define the initial rate of wood
-stone_rate = 10  # Define the initial rate of stone
-income_per_timestep = 1
+wood_rate = 5  # Define the initial rate of wood
+stone_rate = 5  # Define the initial rate of stone
+income_per_timestep = 5
 
 # Initialize grid
 grid = Grid(width, height, house_cost)
 
 filepath = 'data/test_stuff_2.csv'
 
+dynamic_tax = True
+dynamic_market = True
 # Initialize simulation
-sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, num_resources=num_resources, wood_rate=wood_rate, lifetime_mean=lifetime_mean, lifetime_std=lifetime_std, stone_rate=stone_rate, income_per_timestep=income_per_timestep, save_file_path=filepath, show_time=True)
+sim = Simulation(num_agents, grid, n_timesteps=n_timesteps, num_resources=num_resources, wood_rate=wood_rate, lifetime_mean=lifetime_mean, lifetime_std=lifetime_std, stone_rate=stone_rate, income_per_timestep=income_per_timestep, save_file_path=filepath, show_time=True, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market)
 
 # Run simulation
-# sim.run()
+sim.run()
 
 end = time.time()
 
