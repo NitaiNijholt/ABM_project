@@ -272,7 +272,7 @@ class Simulation:
             plt.plot(agent_data['timestep'], agent_data['wealth'], label=f'Agent {agent_id}')
         plt.xlabel('Timesteps')
         plt.ylabel('Wealth')
-        plt.title('Wealth Over Time')
+        plt.title('Wealth EV agent Over Time')
         plt.grid(True)
         plt.show()
 

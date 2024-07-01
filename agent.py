@@ -49,7 +49,7 @@ class Agent(Agent_static_market):
         # print(f"Agent {self.agent_id} at step {self.sim.t}: Wealth={self.wealth}, Wood={self.wood}, Stone={self.stone}")
         if self.currently_building_timesteps > 0:
             self.currently_building_timesteps += 1
-            self.current_action = 'building_house'
+            self.current_action = 'continue_building'  # Standardized action name
             if self.currently_building_timesteps == self.required_building_time:
                 self.currently_building_timesteps = 0
                 self.build_house()

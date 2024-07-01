@@ -169,18 +169,17 @@ class IntelligentAgent(Agent):
             self.current_action = 'move'
         elif direction == 'stay':
             new_position = self.position
-            self.current_action = 'stay'
         else:
             raise ValueError("Invalid direction")
 
 
         # Ensure new position is within grid bounds
-        if self.grid.agent_matrix[new_position] == 0 or self.current_action=='stay':
+        if self.grid.agent_matrix[new_position] == 0 or new_position==self.position:
             # Move the agent
             self.grid.agent_matrix[self.position] = 0
             self.grid.agent_matrix[new_position] = self.agent_id
             self.position = new_position
-            self.sim.moving += 1
+            # self.sim.moving += 1
 
     def gather(self):
         """
@@ -216,7 +215,7 @@ class IntelligentAgent(Agent):
             self.wood -= wood_cost
             self.stone -= stone_cost
             self.currently_building_timesteps = 1
-            self.current_action = 'start building'
+            self.current_action = 'start_building'
             self.sim.build += 1
 
 
@@ -226,7 +225,7 @@ class IntelligentAgent(Agent):
             if self.currently_building_timesteps == self.required_building_time:
                 self.currently_building_timesteps = 0
                 self.build_house()
-                self.current_action = 'continue building'
+                self.current_action = 'continue_building'
         else:
             inputs = np.array(self.get_inputs()).astype(np.float32).reshape(1, -1)
             outputs = self.model.forward(inputs)

@@ -70,7 +70,7 @@ def aggregate_feature_importances(directory):
     for filename in all_files:
         df = pd.read_csv(filename)
         # Ensure the column order is consistent
-        df = df[['buy', 'sell', 'building_house', 'build', 'gather', 'wealth_diff', 'income', 'cluster']]
+        df = df[['buy', 'sell', 'start_building', 'continue_building', 'gather', 'wealth_diff', 'income', 'cluster']]
         dfs.append(df)
 
     # Use the first DataFrame as the reference for aligning clusters
@@ -85,7 +85,7 @@ def aggregate_feature_importances(directory):
     combined_df = pd.concat(aligned_dfs, ignore_index=True)
 
     # Perform Pairwise Tukey HSD tests
-    feature_columns = ['buy', 'sell', 'building_house', 'build', 'gather', 'wealth_diff', 'income']
+    feature_columns = ['buy', 'sell', 'start_building', 'continue_building', 'gather', 'wealth_diff', 'income', 'cluster']
     tukey_results = perform_pairwise_tukey(combined_df, feature_columns, 'aligned_cluster')
     tukey_file_path = os.path.join(directory, 'pairwise_tukey_results.csv')
     tukey_results.to_csv(tukey_file_path)
@@ -106,6 +106,7 @@ def aggregate_feature_importances(directory):
     print(f"Aggregated feature importances saved to {aggregated_file_path}")
 
     # Plot the aggregated feature importances with error bars (std deviation)
+    colors = {0: 'blue', 1: 'green', 2: 'orange'}
     for stat in ['mean', 'median']:
         fig, axs = plt.subplots(grouped.index.nunique(), 1, figsize=(12, 8), constrained_layout=True)
         for cluster in grouped.index:
@@ -114,10 +115,10 @@ def aggregate_feature_importances(directory):
                 std_data = grouped.loc[cluster, [col for col in grouped.columns if col.endswith('std') and col != 'cluster_std']]
                 error_bars = std_data.values
                 ax = axs[cluster]
-                data.plot(kind='bar', ax=ax, yerr=error_bars, capsize=5)
+                data.plot(kind='bar', ax=ax, yerr=error_bars, capsize=5, color=colors.get(cluster, 'black'))
             else:
                 ax = axs[cluster]
-                data.plot(kind='bar', ax=ax)
+                data.plot(kind='bar', ax=ax, color=colors.get(cluster, 'black'))
             ax.set_title(f'Feature Importance ({stat.capitalize()}) for Cluster {cluster}')
             ax.set_xlabel('Features')
             ax.set_ylabel(f'{stat.capitalize()} Value')
@@ -127,5 +128,5 @@ def aggregate_feature_importances(directory):
         plt.show()
 
 # Directory where the feature analysis CSV files are saved
-directory = 'sensitivity_analysis_results'
+directory = 'sensitivity_analysis_results/final_exp_ev_static_tax'
 aggregate_feature_importances(directory)

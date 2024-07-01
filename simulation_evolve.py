@@ -61,9 +61,9 @@ class Simulation:
         self.sell = 0
         self.build = 0
 
-        # Initialize Dynamic market
-        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time, self.agent_dict)
-        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time, self.agent_dict)
+                # Initialize Dynamic market
+        self.wood_order_book = OrderBooks(self.get_agents_dict(), 'wood', order_expiry_time, self.grid.agents)
+        self.stone_order_book = OrderBooks(self.get_agents_dict(), 'stone', order_expiry_time, self.grid.agents)
 
         # Initialize Static price market
         self.market = Market(wood_rate, stone_rate)
@@ -352,7 +352,7 @@ class Simulation:
             plt.plot(agent_data['timestep'], agent_data['wealth'], label=f'Agent {agent_id}')
         plt.xlabel('Timesteps')
         plt.ylabel('Wealth')
-        plt.title('Wealth Over Time')
+        plt.title('Wealth Neuroevolution agent Over Time')
         plt.grid(True)
         plt.show()
 

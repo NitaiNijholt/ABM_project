@@ -13,6 +13,7 @@ from simulation_evolve import Simulation as SimulationEvolve
 from simulation import Simulation
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import gc
 
 
 class MultipleRunSimulator:
@@ -49,6 +50,7 @@ class MultipleRunSimulator:
                 json.dump(serializable_param_set, f, indent=4)
 
             for run in range(1, self.num_runs + 1):
+                grid = Grid(height = self.grid_height, width = self.grid_width)
                 print(f"Running simulation {run}/{self.num_runs} for parameter combination {combination_index}/{len(self.param_combinations)}...")
                 print(f"Parameters: {param_set}")
                 if self.evolve:
@@ -60,6 +62,10 @@ class MultipleRunSimulator:
                 
                 if self.plot_per_run:
                     self.plot_run_data(sim.data, run, combination_index)
+
+                # Clean up to free memory
+                del sim
+                gc.collect()
 
     def save_run_data(self, data, run_number, combination_index):
         df = pd.DataFrame(data)
@@ -310,7 +316,7 @@ constant_params = {
     'num_agents': [30],  
     'grid': [Grid(width=40, height=40)],
     'n_timesteps': [1000],
-    'num_resources': [50],
+    'num_resources': [500],
     'stone_rate': [1],
     'wood_rate': [1],
     'lifetime_mean': [80],
@@ -325,11 +331,11 @@ constant_params = {
 # Combine the two dictionaries
 combined_params = {**constant_params}
 
-evolve = False
-dynamic_tax = True
+evolve = True
+dynamic_tax = False
 dynamic_market = True
 
-simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/dynamic', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False)
+simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/evolve_static', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False)
 simulator.run_simulations()
 aggregated_data, feature_importances = simulator.aggregate_results()
 

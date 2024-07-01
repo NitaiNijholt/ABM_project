@@ -170,6 +170,7 @@ class Agent_static_market:
         self.grid.house_matrix[self.position] += 1
         house = House(self.agent_id, self.position)
         self.houses.append(house)
+        self.current_action = 'start_building'
         if self.position not in self.grid.houses:
             self.grid.houses[self.position] = [house]
         else:
