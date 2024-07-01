@@ -257,9 +257,9 @@ class Simulation:
 
         # Plotting the price history
         plt.figure(figsize=(10, 6))
-        plt.plot(price_history_wood, marker='o', linestyle='-', color='g', label = 'wood')
-        plt.plot(price_history_stone, marker='o', linestyle='-', color='b', label ='stone')
-        plt.title('Price History of Wood Transactions')
+        plt.plot(price_history_wood, marker='o', markersize= 3, linestyle='-', color='g', label = 'wood')
+        plt.plot(price_history_stone, marker='o', markersize = 3, linestyle='-', color='b', label ='stone')
+        plt.title('Price History of Wood and Stone Transactions')
         plt.xlabel('Transaction Index')
         plt.ylabel('Price')
         plt.legend()
