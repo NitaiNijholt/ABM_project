@@ -13,7 +13,6 @@ from simulation_evolve import Simulation as SimulationEvolve
 from simulation import Simulation
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import gc
 
 
 class MultipleRunSimulator:
@@ -26,6 +25,11 @@ class MultipleRunSimulator:
         self.dynamic_tax = dynamic_tax
         self.dynamic_market = dynamic_market
         self.plot_per_run = plot_per_run
+        
+        # Extract grid width and height from simulation_params
+        grid_params = simulation_params.get('grid', [{}])[0]
+        self.grid_width = grid_params.get('grid_width', 40)
+        self.grid_height = grid_params.get('grid_height', 40)
 
         if not os.path.exists(self.save_directory):
             os.makedirs(self.save_directory)
@@ -50,22 +54,24 @@ class MultipleRunSimulator:
                 json.dump(serializable_param_set, f, indent=4)
 
             for run in range(1, self.num_runs + 1):
-                grid = Grid(height = self.grid_height, width = self.grid_width)
                 print(f"Running simulation {run}/{self.num_runs} for parameter combination {combination_index}/{len(self.param_combinations)}...")
                 print(f"Parameters: {param_set}")
+                
+                # Create the grid
+                grid = Grid(width=self.grid_width, height=self.grid_height)
+                
+                # Remove the 'grid' key from param_set if it exists
+                param_set.pop('grid', None)
+                
                 if self.evolve:
-                    sim = SimulationEvolve(**param_set, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market)
+                    sim = SimulationEvolve(**param_set, grid=grid, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market)
                 else:
-                    sim = Simulation(**param_set, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market)
+                    sim = Simulation(**param_set, grid=grid, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market, show_time=True)
                 sim.run()
                 self.save_run_data(sim.data, run, combination_index)
                 
                 if self.plot_per_run:
                     self.plot_run_data(sim.data, run, combination_index)
-
-                # Clean up to free memory
-                del sim
-                gc.collect()
 
     def save_run_data(self, data, run_number, combination_index):
         df = pd.DataFrame(data)
@@ -165,7 +171,7 @@ class MultipleRunSimulator:
         df = pd.read_csv(file_path)
         with open(params_file_path, 'r') as f:
             params = json.load(f)
-        params['grid'] = Grid(width=10, height=10)
+        params['grid'] = Grid(width=self.grid_width, height=self.grid_height)
         print(f"Data for run {run_number} of combination {combination_index} loaded from {file_path} with parameters loaded from {params_file_path}.")
         return df, params
 
@@ -314,9 +320,9 @@ class MultipleRunSimulator:
 # Example usage
 constant_params = {
     'num_agents': [30],  
-    'grid': [Grid(width=40, height=40)],
     'n_timesteps': [1000],
     'num_resources': [500],
+    'grid': [{'grid_width': 40, 'grid_height': 40}],
     'stone_rate': [1],
     'wood_rate': [1],
     'lifetime_mean': [80],
@@ -331,11 +337,13 @@ constant_params = {
 # Combine the two dictionaries
 combined_params = {**constant_params}
 
-evolve = True
+evolve = False
 dynamic_tax = False
 dynamic_market = True
 
-simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/evolve_static', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False)
+num_runs = 10
+
+simulator = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/test_exp_v3/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False)
 simulator.run_simulations()
 aggregated_data, feature_importances = simulator.aggregate_results()
 
