@@ -7,10 +7,10 @@ import json
 from sklearn.preprocessing import StandardScaler
 from scipy.cluster.hierarchy import dendrogram, linkage
 from sklearn.cluster import AgglomerativeClustering
-from agent import Agent 
+from agent import Agent  # Assuming these modules are correctly imported
 from grid import Grid
-from simulation_evolve_v2 import SimulationEvolve
-from simulation_v2 import Simulation
+from simulation_evolve import SimulationEvolve
+from simulation import Simulation
 from SALib.sample import saltelli
 from SALib.analyze import sobol
 
@@ -88,6 +88,12 @@ class MultipleRunSimulator:
             self.save_sensitivity_analysis_results(all_metrics)
 
     def run_simulation_combination(self, param_set, combination_index):
+        # Convert specific parameters to integers
+        int_params = ['num_agents', 'n_timesteps', 'num_resources', 'grid_width', 'grid_height', 'order_expiry_time', 'tax_period', 'income_per_timestep']
+        for param in int_params:
+            if param in param_set:
+                param_set[param] = int(param_set[param])
+
         combination_dir = os.path.join(self.save_directory, f"combination_{combination_index}")
         if not os.path.exists(combination_dir):
             os.makedirs(combination_dir)
@@ -142,13 +148,17 @@ class MultipleRunSimulator:
             if self.plot_per_run:
                 self.plot_run_data(sim.data, run, combination_index)
 
-        # Save all metrics to a CSV file
-        metrics_df = pd.DataFrame(all_metrics)
-        metrics_csv_path = os.path.join(combination_dir, 'metrics.csv')
-        metrics_df.to_csv(metrics_csv_path, index=False)
-        print(f"Metrics for all runs of combination {combination_index} saved to {metrics_csv_path}.")
+        # Calculate and save average metrics
+        average_metrics = self.calculate_average_metrics(all_metrics)
+        average_metrics_csv_path = os.path.join(combination_dir, 'average_metrics.csv')
+        average_metrics.to_csv(average_metrics_csv_path, index=False)
+        print(f"Average metrics for combination {combination_index} saved to {average_metrics_csv_path}.")
 
         return all_metrics
+
+    def calculate_average_metrics(self, metrics):
+        metrics_df = pd.DataFrame(metrics)
+        return metrics_df.mean().to_frame().T
 
     def save_run_data(self, data, run_number, combination_index):
         df = pd.DataFrame(data)
@@ -291,7 +301,7 @@ class MultipleRunSimulator:
             print(f"Sensitivity analysis results saved to {results_file_path}")
 
 # Example usage
-param_range = {
+constant_params = {
     'num_agents': [20, 50],  # Changed to a range
     'n_timesteps': [800, 1200],  # Changed to a range
     'num_resources': [400, 600],  # Changed to a range
@@ -308,7 +318,7 @@ param_range = {
 }
 
 # Remove the parameter with None value for sensitivity analysis
-filtered_params = {k: v for k, v in param_range.items() if None not in v}
+filtered_params = {k: v for k, v in constant_params.items() if None not in v}
 combined_params = {**filtered_params}
 
 evolve = False
@@ -320,8 +330,8 @@ num_base_samples = 4  # Number of base samples for Saltelli sampling
 sensitivity_metric = 'gini_coefficient'  # Change this to the metric you want to analyze
 
 # Standard mode
-simulator_standard = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/test_exp_v3_standard/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='no')
-simulator_standard.run_simulations()
+# simulator_standard = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/test_exp_v3_standard/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='no')
+# simulator_standard.run_simulations()
 
 # Global sensitivity analysis mode
 simulator_global_sa = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/test_exp_v3_global_sa/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='global', num_base_samples=num_base_samples, sensitivity_metric=sensitivity_metric)
