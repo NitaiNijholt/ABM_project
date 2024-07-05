@@ -13,6 +13,7 @@ from simulation_evolve import SimulationEvolve
 from simulation import Simulation
 from SALib.sample import saltelli
 from SALib.analyze import sobol
+from SALib.plotting.bar import plot as barplot
 
 def gini_coefficient(wealths):
     """ Calculate the Gini coefficient of a list of wealths. """
@@ -70,6 +71,7 @@ class MultipleRunSimulator:
         return combinations
 
     def generate_sobol_samples(self, problem, num_base_samples):
+        # Generate Sobol samples based on the number of base samples and problem definition
         return saltelli.sample(problem, num_base_samples)
 
     def run_simulations(self):
@@ -126,23 +128,23 @@ class MultipleRunSimulator:
 
             if self.evolve:
                 sim = SimulationEvolve(num_agents=num_agents, n_timesteps=n_timesteps, num_resources=num_resources,
-                                       stone_rate=stone_rate, wood_rate=wood_rate, lifetime_mean=lifetime_mean,
-                                       lifetime_std=lifetime_std, resource_spawn_rate=resource_spawn_rate,
-                                       order_expiry_time=order_expiry_time, save_file_path=save_file_path,
-                                       tax_period=tax_period, income_per_timestep=income_per_timestep,
-                                       grid=grid, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market)
+                                    stone_rate=stone_rate, wood_rate=wood_rate, lifetime_mean=lifetime_mean,
+                                    lifetime_std=lifetime_std, resource_spawn_rate=resource_spawn_rate,
+                                    order_expiry_time=order_expiry_time, save_file_path=save_file_path,
+                                    tax_period=tax_period, income_per_timestep=income_per_timestep,
+                                    grid=grid, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market)
             else:
                 sim = Simulation(num_agents=num_agents, n_timesteps=n_timesteps, num_resources=num_resources,
-                                 stone_rate=stone_rate, wood_rate=wood_rate, lifetime_mean=lifetime_mean,
-                                 lifetime_std=lifetime_std, resource_spawn_rate=resource_spawn_rate,
-                                 order_expiry_time=order_expiry_time, save_file_path=save_file_path,
-                                 tax_period=tax_period, income_per_timestep=income_per_timestep,
-                                 grid=grid, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market,
-                                 show_time=True)
+                                stone_rate=stone_rate, wood_rate=wood_rate, lifetime_mean=lifetime_mean,
+                                lifetime_std=lifetime_std, resource_spawn_rate=resource_spawn_rate,
+                                order_expiry_time=order_expiry_time, save_file_path=save_file_path,
+                                tax_period=tax_period, income_per_timestep=income_per_timestep,
+                                grid=grid, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market,
+                                show_time=True)
             sim.run()
             self.save_run_data(sim.data, run, combination_index)
 
-            metrics = self.calculate_metrics(sim.data)
+            metrics, _ = self.calculate_metrics(sim.data)
             all_metrics.append(metrics)
 
             if self.plot_per_run:
@@ -163,9 +165,24 @@ class MultipleRunSimulator:
     def save_run_data(self, data, run_number, combination_index):
         df = pd.DataFrame(data)
         combination_dir = os.path.join(self.save_directory, f"combination_{combination_index}")
+        if not os.path.exists(combination_dir):
+            os.makedirs(combination_dir)
+        
+        # Save raw data
         file_path = os.path.join(combination_dir, f"run_{run_number}.csv")
         df.to_csv(file_path, index=False)
         print(f"Data for run {run_number} of combination {combination_index} saved to {file_path}.")
+
+        # Calculate and save metrics
+        metrics, feature_importances = self.calculate_metrics(data)
+        
+        # Combine metrics and feature importances into a single dictionary
+        metrics.update(feature_importances)
+        
+        metrics_file_path = os.path.join(combination_dir, f"metrics_{run_number}.csv")
+        metrics_df = pd.DataFrame([metrics])
+        metrics_df.to_csv(metrics_file_path, index=False)
+        print(f"Metrics for run {run_number} of combination {combination_index} saved to {metrics_file_path}.")
 
     def calculate_metrics(self, data):
         df = pd.DataFrame(data)
@@ -189,13 +206,19 @@ class MultipleRunSimulator:
             "social_welfare": swf
         }
 
+        feature_importances = {}
         # Adding feature importances if required
         if self.do_feature_analysis.lower() == 'yes':
             feature_analysis, _ = self.analyze_run_data(df)
-            for feature in feature_analysis.columns:
-                metrics[feature] = feature_analysis[feature].mean()
+            feature_importances = feature_analysis.to_dict(orient='list')
 
-        return metrics
+        # Ensure no NaN values in metrics
+        for key in metrics:
+            if np.isnan(metrics[key]):
+                metrics[key] = 0.0
+
+        return metrics, feature_importances
+
 
     def analyze_run_data(self, df):
         wealth_diff = df.groupby('agent_id')['wealth'].agg(['first', 'last']).reset_index()
@@ -284,37 +307,108 @@ class MultipleRunSimulator:
     def save_sensitivity_analysis_results(self, all_metrics):
         if self.sensitivity_analysis != 'no':
             # Extract the relevant metrics for sensitivity analysis
-            Y = [metrics[self.sensitivity_metric] for metrics in all_metrics]
+            metrics_keys = all_metrics[0].keys()
+            sobol_results = {}
+            for metric in metrics_keys:
+                Y = [metrics[metric] for metrics in all_metrics]
+                Y = np.array(Y)
 
-            Y = np.array(Y)
-            Si = sobol.analyze(self.problem, Y, print_to_console=True)
+                # Handle cases where Y contains NaNs
+                if np.any(np.isnan(Y)):
+                    print(f"Warning: NaNs detected in metric '{metric}'. Replacing NaNs with 0.")
+                    Y = np.nan_to_num(Y, nan=0.0)
 
-            sensitivity_results = {
-                'S1': Si['S1'].tolist(),
-                'ST': Si['ST'].tolist(),
-                'names': self.problem['names']
-            }
+                Si = sobol.analyze(self.problem, Y, print_to_console=True)
+
+                print(f"Sensitivity analysis for {metric}:")
+                print("First-order sensitivity indices (S1):", Si['S1'])
+                print("First-order confidence intervals (S1_conf):", Si.get('S1_conf', [None]*len(Si['S1'])))
+                print("Total-order sensitivity indices (ST):", Si['ST'])
+                print("Total-order confidence intervals (ST_conf):", Si.get('ST_conf', [None]*len(Si['ST'])))
+                print("Parameter names:", self.problem['names'])
+
+                sobol_results[metric] = {
+                    'S1': Si['S1'].tolist(),
+                    'S1_conf': Si.get('S1_conf', [None]*len(Si['S1'])).tolist(),
+                    'ST': Si['ST'].tolist(),
+                    'ST_conf': Si.get('ST_conf', [None]*len(Si['ST'])).tolist(),
+                    'names': self.problem['names']
+                }
 
             results_file_path = os.path.join(self.save_directory, 'sensitivity_analysis_results.json')
             with open(results_file_path, 'w') as f:
-                json.dump(sensitivity_results, f, indent=4)
+                json.dump(sobol_results, f, indent=4)
             print(f"Sensitivity analysis results saved to {results_file_path}")
+
+    def plot_sensitivity_indices(self):
+        results_file_path = os.path.join(self.save_directory, 'sensitivity_analysis_results.json')
+        with open(results_file_path, 'r') as f:
+            sensitivity_results = json.load(f)
+        
+        for metric, Si in sensitivity_results.items():
+            print(f"Plotting sensitivity indices for {metric}...")
+            Si_df = pd.DataFrame(Si)
+
+            # Plotting first-order sensitivity indices
+            plt.figure(figsize=(12, 6))
+            barplot(Si_df[['names', 'S1', 'S1_conf']])
+            plt.title(f'First-order Sobol Sensitivity Indices for {metric}')
+            plt.savefig(os.path.join(self.save_directory, f'first_order_sensitivity_{metric}.png'))
+            plt.show()
+
+            # Plotting total-order sensitivity indices
+            plt.figure(figsize=(12, 6))
+            barplot(Si_df[['names', 'ST', 'ST_conf']])
+            plt.title(f'Total-order Sobol Sensitivity Indices for {metric}')
+            plt.savefig(os.path.join(self.save_directory, f'total_order_sensitivity_{metric}.png'))
+            plt.show()
+
+    def run_local_sensitivity_analysis(self):
+        self.sensitivity_analysis = 'local'
+        # Use the num_base_samples passed to the simulator
+        self.run_simulations()
+
+        results_file_path = os.path.join(self.save_directory, 'sensitivity_analysis_results.json')
+        with open(results_file_path, 'r') as f:
+            sensitivity_results = json.load(f)
+
+        print("Sensitivity results loaded from JSON:", sensitivity_results)
+
+        for metric, Si in sensitivity_results.items():
+            Si_df = pd.DataFrame(Si)
+
+            plt.figure(figsize=(12, 6))
+            barplot(Si_df[['names', 'S1', 'S1_conf']])
+            plt.title(f'First-order Sobol Sensitivity Indices for {metric}')
+            plt.savefig(os.path.join(self.save_directory, f'first_order_sensitivity_local_{metric}.png'))
+            plt.show()
+
+            plt.figure(figsize=(12, 6))
+            barplot(Si_df[['names', 'ST', 'ST_conf']])
+            plt.title(f'Total-order Sobol Sensitivity Indices for {metric}')
+            plt.savefig(os.path.join(self.save_directory, f'total_order_sensitivity_local_{metric}.png'))
+            plt.show()
+
+            threshold = 0.05
+            influential_params = [Si['names'][i] for i in range(len(Si['S1'])) if Si['S1'][i] > threshold or Si['ST'][i] > threshold]
+
+            print(f"Influential parameters for {metric}: {influential_params}")
 
 # Example usage
 constant_params = {
-    'num_agents': [20, 50],  # Changed to a range
-    'n_timesteps': [800, 1200],  # Changed to a range
-    'num_resources': [400, 600],  # Changed to a range
-    'grid_width': [30, 50],  # Changed to a range
-    'grid_height': [30, 50],  # Changed to a range
-    'stone_rate': [0.8, 1.2],  # Changed to a range
-    'wood_rate': [0.8, 1.2],  # Changed to a range
+    'num_agents': [5, 50],  # Changed to a range
+    'n_timesteps': [100, 1200],  # Changed to a range
+    'num_resources': [50, 5000],  # Changed to a range
+    'grid_width': [10, 50],  # Changed to a range
+    'grid_height': [10, 50],  # Changed to a range
+    'stone_rate': [0.5, 5],  # Changed to a range
+    'wood_rate': [0.5, 5],  # Changed to a range
     'lifetime_mean': [70, 90],  # Changed to a range
     'lifetime_std': [5, 15],  # Changed to a range
-    'resource_spawn_rate': [0.4, 0.6],  # Changed to a range
+    'resource_spawn_rate': [0.1, 5],  # Changed to a range
     'order_expiry_time': [3, 7],  # Changed to a range
-    'tax_period': [1, 2],  # Changed to a range
-    'income_per_timestep': [0.5, 1.5]  # Changed to a range
+    'tax_period': [1, 10],  # Changed to a range
+    'income_per_timestep': [0.5, 5]  # Changed to a range
 }
 
 # Remove the parameter with None value for sensitivity analysis
@@ -325,18 +419,25 @@ evolve = False
 dynamic_tax = False
 dynamic_market = True
 
-num_runs = 2
-num_base_samples = 4  # Number of base samples for Saltelli sampling
+num_runs = 1
+num_base_samples = 10  # Number of base samples for Saltelli sampling
 sensitivity_metric = 'gini_coefficient'  # Change this to the metric you want to analyze
 
-# Standard mode
-# simulator_standard = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/test_exp_v3_standard/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='no')
-# simulator_standard.run_simulations()
+# Calculate the number of combinations
+num_parameters = len(filtered_params)
+total_combinations = num_base_samples * (num_parameters + 2)
+print(f"Total number of combinations: {total_combinations}")
 
-# Global sensitivity analysis mode
-simulator_global_sa = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/test_exp_v3_global_sa/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='global', num_base_samples=num_base_samples, sensitivity_metric=sensitivity_metric)
+# Perform local sensitivity analysis to identify influential parameters
+simulator_local_sa = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/SA_test_local_sa_4/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='local', num_base_samples=num_base_samples, sensitivity_metric=sensitivity_metric)
+influential_params = simulator_local_sa.run_local_sensitivity_analysis()
+
+print("Influential Parameters:", influential_params)
+
+# Use the influential parameters for global sensitivity analysis
+reduced_params = {param: combined_params[param] for param in influential_params}
+
+# Global sensitivity analysis mode with reduced parameter set
+simulator_global_sa = MultipleRunSimulator(reduced_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/SA_test_global_sa_4/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='global', num_base_samples=num_base_samples, sensitivity_metric=sensitivity_metric)
 simulator_global_sa.run_simulations()
-
-# Local sensitivity analysis mode (also using Sobol sampling)
-simulator_local_sa = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/test_exp_v3_local_sa/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='local', num_base_samples=num_base_samples, sensitivity_metric=sensitivity_metric)
-simulator_local_sa.run_simulations()
+simulator_global_sa.plot_sensitivity_indices()
