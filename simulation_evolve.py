@@ -113,12 +113,15 @@ class Simulation:
         '''
 
         # Select k random indexes from the population
-        k_indexes = np.random.randint(1, self.num_agents + 1, self.k)
+        # k_indexes = np.random.randint(1, self.num_agents + 1, self.k)
+        current_ids = list(self.agent_dict.keys())
+        k_ids = np.random.choice(current_ids, self.k, replace=False)
 
         # # Extract the agent_ids corresponding to the selected indexes
         # selected_agents = [self.grid.agents[index] for index in k_indexes]
         # print(selected_agents)
-        winner = max(k_indexes, key=lambda key: self.agent_dict[key])
+        # winner = max(k_indexes, key=lambda key: self.agent_dict[key])
+        winner = max(k_ids, key=lambda key: self.agent_dict[key])
         return self.grid.agents[winner]
 
     def mutate(self, agent):
@@ -269,14 +272,14 @@ class Simulation:
                 for agent in self.grid.agents.values():
                     agent.update_fitness()
                 
-                print(f'{np.around(self.build / self.num_agents / t_max, 4)}, {np.around(self.gathering / self.num_agents / t_max, 4)}, {np.around(self.moving / self.num_agents / t_max, 4)}, {np.around(self.buy / self.num_agents / t_max, 4)}, {np.around(self.sell / self.num_agents / t_max, 4)}')
+                # print(f'{np.around(self.build / self.num_agents / t_max, 4)}, {np.around(self.gathering / self.num_agents / t_max, 4)}, {np.around(self.moving / self.num_agents / t_max, 4)}, {np.around(self.buy / self.num_agents / t_max, 4)}, {np.around(self.sell / self.num_agents / t_max, 4)}')
                 self.moving = 0
                 self.gathering = 0
                 self.buy = 0
                 self.sell = 0
                 self.build = 0
                 self.reproduce()
-                print(f"########################################## NEW EPOCH {epoch + 1} ############################################")
+                # print(f"########################################## NEW EPOCH {epoch + 1} ############################################")
 
 
         # Save the results to a CSV file after the simulation
