@@ -5,15 +5,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 from sklearn.preprocessing import StandardScaler
-from scipy.cluster.hierarchy import dendrogram, linkage
-from sklearn.cluster import AgglomerativeClustering
-from agent import Agent  # Assuming these modules are correctly imported
+from scipy.spatial.distance import cdist, euclidean
+from scipy.optimize import linear_sum_assignment
+from agent import Agent 
 from grid import Grid
-from simulation_evolve import SimulationEvolve
+from simulation_evolve import Simulation as SimulationEvolve
 from simulation import Simulation
 from SALib.sample import saltelli
 from SALib.analyze import sobol
 from SALib.plotting.bar import plot as barplot
+from sklearn.cluster import AgglomerativeClustering
+
 
 def gini_coefficient(wealths):
     """ Calculate the Gini coefficient of a list of wealths. """
@@ -29,7 +31,7 @@ def normalize(data):
     return (data - np.min(data)) / (np.max(data) - np.min(data))
 
 class MultipleRunSimulator:
-    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no', evolve=False, dynamic_tax=True, dynamic_market=True, plot_per_run=False, sensitivity_analysis='no', num_base_samples=1000, sensitivity_metric='total_welfare'):
+    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no', evolve=False, dynamic_tax=True, dynamic_market=True, plot_per_run=False, sensitivity_analysis='no', num_base_samples=1000, reference_vectors_path='reference_vector.csv'):
         self.simulation_params = simulation_params
         self.num_runs = num_runs
         self.save_directory = save_directory
@@ -40,10 +42,12 @@ class MultipleRunSimulator:
         self.plot_per_run = plot_per_run
         self.sensitivity_analysis = sensitivity_analysis
         self.num_base_samples = num_base_samples
-        self.sensitivity_metric = sensitivity_metric
 
         self.grid_width = simulation_params.get('grid_width', [40])[0]
         self.grid_height = simulation_params.get('grid_height', [40])[0]
+
+        # Load reference vectors from CSV
+        self.reference_vectors = self.load_reference_vectors(reference_vectors_path)
 
         if not os.path.exists(self.save_directory):
             os.makedirs(self.save_directory)
@@ -59,6 +63,17 @@ class MultipleRunSimulator:
             }
             self.problem = problem
             self.sobol_samples = self.generate_sobol_samples(problem, self.num_base_samples)
+
+    def load_reference_vectors(self, reference_vectors_path):
+        df = pd.read_csv(reference_vectors_path)
+        feature_columns = [col for col in df.columns if 'mean' in col]
+        self.reference_columns = [col.replace('_mean', '') for col in feature_columns]
+        reference_vectors = df[feature_columns].values
+        
+        # Normalize the reference vectors so that each vector's features sum to 1
+        reference_vectors = reference_vectors / reference_vectors.sum(axis=1, keepdims=True)
+        
+        return reference_vectors
 
     def filter_numeric_params(self, params):
         """ Filter out non-numeric parameters. """
@@ -79,12 +94,12 @@ class MultipleRunSimulator:
 
         if self.sensitivity_analysis == 'no':
             for combination_index, param_set in enumerate(self.param_combinations, start=1):
-                combination_metrics = self.run_simulation_combination(param_set, combination_index)
+                combination_metrics, combination_distances = self.run_simulation_combination(param_set, combination_index)
                 all_metrics.extend(combination_metrics)
-        else:  # Handle both 'global' and 'local' sensitivity analysis with Sobol sampling
+        else:  # Handle 'global' sensitivity analysis with Sobol sampling
             for sample_index, sample in enumerate(self.sobol_samples):
                 param_set = dict(zip(self.problem['names'], sample))
-                combination_metrics = self.run_simulation_combination(param_set, sample_index + 1)
+                combination_metrics, combination_distances = self.run_simulation_combination(param_set, sample_index + 1)
                 all_metrics.extend(combination_metrics)
 
             self.save_sensitivity_analysis_results(all_metrics)
@@ -106,6 +121,8 @@ class MultipleRunSimulator:
             json.dump(serializable_param_set, f, indent=4)
 
         all_metrics = []
+        all_distances = []
+        
         for run in range(1, self.num_runs + 1):
             print(f"Running simulation {run}/{self.num_runs} for combination {combination_index}...")
             print(f"Parameters: {param_set}")
@@ -144,23 +161,20 @@ class MultipleRunSimulator:
             sim.run()
             self.save_run_data(sim.data, run, combination_index)
 
-            metrics, _ = self.calculate_metrics(sim.data)
-            all_metrics.append(metrics)
+            metrics, feature_importances, distances = self.calculate_metrics(sim.data, run, combination_index)
+            combined_metrics = {**metrics, **feature_importances, **distances}
+            all_metrics.append(combined_metrics)
+            all_distances.append(distances)
 
             if self.plot_per_run:
                 self.plot_run_data(sim.data, run, combination_index)
 
-        # Calculate and save average metrics
-        average_metrics = self.calculate_average_metrics(all_metrics)
-        average_metrics_csv_path = os.path.join(combination_dir, 'average_metrics.csv')
-        average_metrics.to_csv(average_metrics_csv_path, index=False)
-        print(f"Average metrics for combination {combination_index} saved to {average_metrics_csv_path}.")
-
-        return all_metrics
+        return all_metrics, all_distances
 
     def calculate_average_metrics(self, metrics):
         metrics_df = pd.DataFrame(metrics)
         return metrics_df.mean().to_frame().T
+    
 
     def save_run_data(self, data, run_number, combination_index):
         df = pd.DataFrame(data)
@@ -174,17 +188,21 @@ class MultipleRunSimulator:
         print(f"Data for run {run_number} of combination {combination_index} saved to {file_path}.")
 
         # Calculate and save metrics
-        metrics, feature_importances = self.calculate_metrics(data)
+        metrics, feature_importances, distances = self.calculate_metrics(data, run_number, combination_index)
         
         # Combine metrics and feature importances into a single dictionary
-        metrics.update(feature_importances)
+        combined_metrics = {**metrics, **feature_importances, **distances}
         
         metrics_file_path = os.path.join(combination_dir, f"metrics_{run_number}.csv")
-        metrics_df = pd.DataFrame([metrics])
+        metrics_df = pd.DataFrame([combined_metrics])
         metrics_df.to_csv(metrics_file_path, index=False)
         print(f"Metrics for run {run_number} of combination {combination_index} saved to {metrics_file_path}.")
 
-    def calculate_metrics(self, data):
+        # Debug: Print vectors to verify correctness
+        print("Saved Metrics DataFrame:")
+        print(metrics_df)
+
+    def calculate_metrics(self, data, run_number, combination_index):
         df = pd.DataFrame(data)
         initial_wealth_per_agent = df.groupby('agent_id').first()['wealth']
         final_wealth_per_agent = df.groupby('agent_id').last()['wealth']
@@ -207,95 +225,128 @@ class MultipleRunSimulator:
         }
 
         feature_importances = {}
-        # Adding feature importances if required
+        distances = {}
         if self.do_feature_analysis.lower() == 'yes':
-            feature_analysis, _ = self.analyze_run_data(df)
-            feature_importances = feature_analysis.to_dict(orient='list')
+            features, clusters = self.analyze_run_data(df)
+            feature_importances = {f'{col}_cluster_{i}': val for i in features.index for col, val in features.loc[i].items()}
+            
+            # Ensure features and reference_vectors are aligned and have the same shape
+            features_columns = features.columns.tolist()
+            reference_vectors_columns = self.reference_columns
+            
+            # Find common columns
+            common_columns = list(set(features_columns) & set(reference_vectors_columns))
+            
+            # Debug: Print column names and values before aligning
+            print("Feature Vector Columns before aligning:", features_columns)
+            print("Features before aligning:")
+            print(features)
+            print("Reference Vector Columns before aligning:", reference_vectors_columns)
+            print("Reference Vectors before aligning:")
+            print(pd.DataFrame(self.reference_vectors, columns=self.reference_columns))
+            
+            # Align the features and reference vectors
+            features = features[common_columns].values
+            reference_vectors = pd.DataFrame(self.reference_vectors, columns=self.reference_columns)[common_columns].values
+            
+            # Align clusters to the reference
+            aligned_features = self.align_clusters(features, reference_vectors)
+            
+            # Debug: Print column names and values after aligning
+            print("Feature Vector Columns after aligning:", common_columns)
+            print("Features after aligning:")
+            print(aligned_features)
+            print("Reference Vector Columns after aligning:", common_columns)
+            print("Reference Vectors after aligning:")
+            print(reference_vectors)
+            
+            for i in range(len(aligned_features)):
+                print(f"Feature vector for cluster {i}: {aligned_features[i]}")
+                print(f"Reference vector for cluster {i}: {reference_vectors[i]}")
+                dist = euclidean(aligned_features[i], reference_vectors[i])
+                distances[f'euclidean_distance_cluster_{i}'] = dist
 
         # Ensure no NaN values in metrics
         for key in metrics:
             if np.isnan(metrics[key]):
                 metrics[key] = 0.0
 
-        return metrics, feature_importances
+        return metrics, feature_importances, distances
 
+    def align_clusters(self, target, reference):
+        """
+        Align clusters in the target array to those in the reference array.
+        """
+        # Replace NaN or infinite values in target with 0
+        target = np.nan_to_num(target, nan=0.0, posinf=0.0, neginf=0.0)
+
+        # Replace NaN or infinite values in reference with 0
+        reference = np.nan_to_num(reference, nan=0.0, posinf=0.0, neginf=0.0)
+
+        # Compute distances between each pair of clusters
+        distances = cdist(target, reference, metric='euclidean')
+
+        # Find the best matching clusters
+        row_ind, col_ind = linear_sum_assignment(distances)
+
+        # Reorder target clusters to match reference clusters
+        aligned_target = target[row_ind]
+
+        return aligned_target
 
     def analyze_run_data(self, df):
+        # Compute the difference in wealth for each agent
         wealth_diff = df.groupby('agent_id')['wealth'].agg(['first', 'last']).reset_index()
         wealth_diff['wealth_diff'] = wealth_diff['last'] - wealth_diff['first']
 
+        # Compute the mean income for each agent
         mean_income = df.groupby('agent_id')['income'].mean().reset_index()
 
+        # Aggregate data for actions
         aggregated_data = df.groupby('agent_id').agg({
             'action': lambda x: x.value_counts().to_dict()
         }).reset_index()
 
-        action_df = aggregated_data['action'].apply(pd.Series).fillna(0).drop(columns=['move'], errors='ignore')
+        # Convert the action counts into separate columns
+        action_df = aggregated_data['action'].apply(pd.Series).fillna(0)
 
+        # Merge the aggregated data with wealth differences and mean income
         aggregated_data = pd.concat([aggregated_data.drop(columns=['action']), action_df], axis=1)
         aggregated_data = aggregated_data.merge(wealth_diff[['agent_id', 'wealth_diff']], on='agent_id')
         aggregated_data = aggregated_data.merge(mean_income[['agent_id', 'income']], on='agent_id')
 
+        # Ensure all expected columns are present
+        expected_columns = ['buy', 'sell', 'start_building', 'gather', 'wealth_diff', 'income']
+        for col in expected_columns:
+            if col not in aggregated_data.columns:
+                aggregated_data[col] = 0
+
+        # Drop the 'move', 'build', and 'continue_building' columns if they exist
+        columns_to_drop = ['move', 'build', 'continue_building']
+        for col in columns_to_drop:
+            if col in aggregated_data.columns:
+                aggregated_data = aggregated_data.drop(columns=[col])
+
+        # Scale the features
         scaler = StandardScaler()
         scaled_features = scaler.fit_transform(aggregated_data.drop(columns=['agent_id']))
 
-        hierarchical_clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=0, compute_full_tree=True)
-        clusters = hierarchical_clustering.fit_predict(scaled_features)
-
-        if self.plot_per_run:
-            plt.figure(figsize=(10, 7))
-            linked = linkage(scaled_features, 'ward')
-            plt.axhline(y=linked[-(2-1), 2], color='r', linestyle='--')
-            plt.title('Hierarchical Clustering Dendrogram')
-            plt.xlabel('Sample index')
-            plt.ylabel('Distance')
-            plt.show()
-
+        # Re-cluster into a specific number of clusters
         n_clusters = 3
-        hierarchical_clustering = AgglomerativeClustering(n_clusters=n_clusters)
-        clusters = hierarchical_clustering.fit_predict(scaled_features)
+        agglo_clustering = AgglomerativeClustering(n_clusters=n_clusters)
+        clusters = agglo_clustering.fit_predict(scaled_features)
 
         aggregated_data['cluster'] = clusters
 
-        feature_means = pd.DataFrame(scaled_features, columns=aggregated_data.drop(columns=['agent_id', 'cluster']).columns).groupby(aggregated_data['cluster']).mean()
-        colors = plt.get_cmap('tab10')
+        # Compute the feature values for each cluster and normalize them
+        features = pd.DataFrame(scaled_features, columns=aggregated_data.drop(columns=['agent_id', 'cluster']).columns).groupby(clusters).mean()
+        features = features.div(features.sum(axis=1), axis=0)  # Normalize so that each cluster's features sum to 1
 
-        if self.plot_per_run:
-            fig, axs = plt.subplots(n_clusters, 1, figsize=(12, 8), constrained_layout=True)
-            for i in range(n_clusters):
-                feature_means.loc[i].plot(kind='bar', ax=axs[i], color=colors(i % 10))
-                axs[i].set_title(f'Normalized Feature Means for Cluster {i}')
-                axs[i].set_xlabel('Features')
-                axs[i].set_ylabel('Mean Standardized Value')
-                axs[i].grid(True)
-                axs[i].tick_params(axis='x', rotation=45)
-            plt.tight_layout(pad=3.0)
-            plt.show()
+        # Print the features for debugging
+        print("Normalized Features for Clusters:")
+        print(features)
 
-            fig, axs = plt.subplots(2, 1, figsize=(10, 6), constrained_layout=True)
-            for cluster in np.unique(clusters):
-                cluster_data = aggregated_data[aggregated_data['cluster'] == cluster]
-                label = f'Cluster {cluster}'
-                color = colors(cluster % 10)
-                if 'wealth_diff' in aggregated_data.columns:
-                    axs[0].hist(cluster_data['wealth_diff'], bins=20, alpha=0.5, label=label, color=color)
-                    axs[0].set_yscale('log')
-                    axs[0].set_title('Distribution of Wealth Differential by Cluster (Log Scale)')
-                    axs[0].set_xlabel('Wealth Differential')
-                    axs[0].set_ylabel('Frequency')
-                if 'income' in aggregated_data.columns:
-                    axs[1].hist(cluster_data['income'], bins=20, alpha=0.5, label=label, color=color)
-                    axs[1].set_yscale('log')
-                    axs[1].set_title('Distribution of Mean Income by Cluster (Log Scale)')
-                    axs[1].set_xlabel('Mean Income')
-                    axs[1].set_ylabel('Frequency')
-            axs[0].legend()
-            axs[1].legend()
-            plt.tight_layout(pad=3.0)
-            plt.show()
-
-        feature_means['cluster'] = feature_means.index
-        return feature_means.reset_index(drop=True), clusters
+        return features.reset_index(drop=True), clusters
 
     def is_json_serializable(self, v):
         try:
@@ -307,16 +358,28 @@ class MultipleRunSimulator:
     def save_sensitivity_analysis_results(self, all_metrics):
         if self.sensitivity_analysis != 'no':
             # Extract the relevant metrics for sensitivity analysis
-            metrics_keys = all_metrics[0].keys()
+            metrics_keys = all_metrics[0].keys()  # Corrected to access the first metric dictionary
             sobol_results = {}
+
             for metric in metrics_keys:
+                # Collect all metric values across runs
                 Y = [metrics[metric] for metrics in all_metrics]
                 Y = np.array(Y)
+
+                # Debugging: Print the shape and a sample of the data
+                print(f"Metric: {metric}")
+                print(f"Shape of collected data for {metric}: {Y.shape}")
+                print(f"Sample data for {metric}: {Y[:10]}")  # Print first 10 values as a sample
 
                 # Handle cases where Y contains NaNs
                 if np.any(np.isnan(Y)):
                     print(f"Warning: NaNs detected in metric '{metric}'. Replacing NaNs with 0.")
                     Y = np.nan_to_num(Y, nan=0.0)
+
+                # Skip metrics that are constant (all values are the same)
+                if np.all(Y == Y[0]):
+                    print(f"Skipping metric '{metric}' for sensitivity analysis because it is constant.")
+                    continue
 
                 Si = sobol.analyze(self.problem, Y, print_to_console=True)
 
@@ -327,11 +390,15 @@ class MultipleRunSimulator:
                 print("Total-order confidence intervals (ST_conf):", Si.get('ST_conf', [None]*len(Si['ST'])))
                 print("Parameter names:", self.problem['names'])
 
+                # Ensure S1_conf and ST_conf are numpy arrays before calling tolist()
+                Si['S1_conf'] = np.array(Si.get('S1_conf', [None]*len(Si['S1'])))
+                Si['ST_conf'] = np.array(Si.get('ST_conf', [None]*len(Si['ST'])))
+
                 sobol_results[metric] = {
                     'S1': Si['S1'].tolist(),
-                    'S1_conf': Si.get('S1_conf', [None]*len(Si['S1'])).tolist(),
+                    'S1_conf': Si['S1_conf'].tolist(),
                     'ST': Si['ST'].tolist(),
-                    'ST_conf': Si.get('ST_conf', [None]*len(Si['ST'])).tolist(),
+                    'ST_conf': Si['ST_conf'].tolist(),
                     'names': self.problem['names']
                 }
 
@@ -394,13 +461,12 @@ class MultipleRunSimulator:
 
             print(f"Influential parameters for {metric}: {influential_params}")
 
-# Example usage
 constant_params = {
     'num_agents': [5, 50],  # Changed to a range
     'n_timesteps': [100, 1200],  # Changed to a range
     'num_resources': [50, 5000],  # Changed to a range
-    'grid_width': [10, 50],  # Changed to a range
-    'grid_height': [10, 50],  # Changed to a range
+    'grid_width': [40, 100],  # Changed to a range
+    'grid_height': [40, 100],  # Changed to a range
     'stone_rate': [0.5, 5],  # Changed to a range
     'wood_rate': [0.5, 5],  # Changed to a range
     'lifetime_mean': [70, 90],  # Changed to a range
@@ -419,25 +485,28 @@ evolve = False
 dynamic_tax = False
 dynamic_market = True
 
-num_runs = 1
-num_base_samples = 10  # Number of base samples for Saltelli sampling
-sensitivity_metric = 'gini_coefficient'  # Change this to the metric you want to analyze
+num_runs = 10
+num_base_samples = 100  # Number of base samples for Saltelli sampling
 
 # Calculate the number of combinations
 num_parameters = len(filtered_params)
 total_combinations = num_base_samples * (num_parameters + 2)
 print(f"Total number of combinations: {total_combinations}")
 
-# Perform local sensitivity analysis to identify influential parameters
-simulator_local_sa = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/SA_test_local_sa_4/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='local', num_base_samples=num_base_samples, sensitivity_metric=sensitivity_metric)
-influential_params = simulator_local_sa.run_local_sensitivity_analysis()
-
-print("Influential Parameters:", influential_params)
-
-# Use the influential parameters for global sensitivity analysis
-reduced_params = {param: combined_params[param] for param in influential_params}
-
 # Global sensitivity analysis mode with reduced parameter set
-simulator_global_sa = MultipleRunSimulator(reduced_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/SA_test_global_sa_4/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False, sensitivity_analysis='global', num_base_samples=num_base_samples, sensitivity_metric=sensitivity_metric)
+simulator_global_sa = MultipleRunSimulator(
+    combined_params,
+    num_runs=num_runs,
+    save_directory='sensitivity_analysis_results/global_sa_ev_static/',
+    do_feature_analysis='yes',
+    evolve=evolve,
+    dynamic_tax=dynamic_tax,
+    dynamic_market=dynamic_market,
+    plot_per_run=False,
+    sensitivity_analysis='global',
+    num_base_samples=num_base_samples,
+    reference_vectors_path='cluster_reference_vectors.csv'
+)
+
 simulator_global_sa.run_simulations()
 simulator_global_sa.plot_sensitivity_indices()
