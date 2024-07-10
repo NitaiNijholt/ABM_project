@@ -1,3 +1,6 @@
+当然，我将更新"Features"部分并调整"Contact Information"的格式。以下是更新后的README文件：
+
+```markdown
 # ABM Project
 
 This repository contains the files for the Agent Based Modeling project, for the Agent Based Modeling course, University of Amsterdam 2024.
@@ -26,13 +29,10 @@ Ensure you have the following installed:
 - [Git](https://git-scm.com/)
 - Required Python libraries (listed in `requirements.txt`):
   - numpy
-  - scipy
   - pandas
   - matplotlib
-  - statsmodels
   - scikit-learn
-  - SALib
-  - psutil
+  - networkx
   - more as specified in `requirements.txt`
 
 ### Installation Steps
@@ -59,18 +59,33 @@ Ensure you have the following installed:
 
 This project includes the following features:
 
-- **agent.py**: Defines the `Agent` class (using 'dynamic market' and 'EV based decision').
-- **agent_static_market.py**: Defines the `Agent_static_market` class (using the 'static market' and 'EV-based decision').
-- **intelligent_agent_dynamic_market.py**: Defines the `IntelligentAgent` class (using the 'dynamic market' and 'network-based decision').
-- **grid.py**: Defines the `Grid` class.
-- **house.py**: Defines the `House` class.
-- **dynamic_tax_policy.py**: Defines the `DynamicTaxPolicy` class.
-- **static_tax_policy.py**: Defines the `StaticTaxPolicy` class.
-- **market.py**: Defines the `Market` (static market) class.
-- **orderbook.py**: Defines the `OrderBooks` (dynamic market) class.
-- **network.py**: Defines the `Network` class for intelligent agents' decision making and evolution.
-- **simulation.py**: Defines the `Simulation` class for simulating the EV-based agents.
-- **simulation_evolve.py**: Defines the `Simulation` class for simulating the network-based agents and performing evolutional computing.
+- **agent.py**: Defines the `Agent` class, responsible for individual agent behaviors and interactions in the dynamic market using an EV-based decision model.
+- **agent_static_market.py**: Defines the `Agent_static_market` class, which models agent behaviors in a static market environment using an EV-based decision model.
+- **intelligent_agent_dynamic_market.py**: Defines the `IntelligentAgent` class, modeling agents that make decisions based on network influences in a dynamic market.
+- **grid.py**: Defines the `Grid` class, which manages the spatial environment where agents operate.
+- **house.py**: Defines the `House` class, representing housing units within the simulation.
+- **dynamic_tax_policy.py**: Implements the `DynamicTaxPolicy` class, simulating a tax policy that adjusts dynamically based on the market conditions.
+- **static_tax_policy.py**: Implements the `StaticTaxPolicy` class, simulating a fixed tax policy regardless of market changes.
+- **market.py**: Defines the `Market` class, simulating a static market environment where agents interact.
+- **orderbook.py**: Defines the `OrderBooks` class, which simulates the order books in a dynamic market environment.
+- **network.py**: Defines the `Network` class, used for modeling intelligent agents' decision-making processes based on network connections and influences.
+- **simulation.py**: Contains the `Simulation` class for running simulations of EV-based agents in the modeled environment.
+- **simulation_evolve.py**: Contains the `Simulation` class for running simulations with network-based agents, incorporating evolutionary computing techniques for agent adaptation.
+- **aggregate_feature_importances_and_ANOVA.py**: Performs aggregate feature importance analysis and ANOVA tests.
+- **analysis_aggregate_feature_importances_and_ANOVA.py**: Contains scripts for analyzing aggregate feature importance and conducting ANOVA tests.
+- **analysis_ks_test_income_disitributions.py**: Analyzes income distributions using the KS test.
+- **analysis_multiruns_ks_test.py**: Validates multiple simulation runs using the KS test.
+- **analysis_validation_multiruns_ks_test.py**: Further validation of multiple simulation runs using the KS test.
+- **clustering_and_pca.py**: Implements clustering and Principal Component Analysis (PCA) on simulation data.
+- **clustering_and_pca_new.py**: Updated version of the clustering and PCA implementation.
+- **fit_income_data_external.ipynb**: Jupyter notebook for fitting external income data.
+- **global_sensitivty_indices_plotter.py**: Plots global sensitivity indices.
+- **multi_run_param_simulator.py**: Simulates multiple runs with varying parameters.
+- **multi_run_param_simulator_sensitivity.py**: Adds sensitivity analysis to multi-run simulations.
+- **multi_run_param_simulator_sensitivity_v2.py**: Updated version of the sensitivity analysis for multi-run simulations.
+- **multi_run_param_simulator_v2.py**: Updated version of the multi-run parameter simulator.
+- **plot_sensitivity_indices.py**: Plots sensitivity indices for various metrics.
+- **sensitivity_analysis_oat.ipynb**: Jupyter notebook for One-At-A-Time (OAT) sensitivity analysis.
 
 ## License
 
@@ -80,12 +95,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For any questions or suggestions, please contact:
 
-Nitai Nijholt
-University of Amsterdam
-Email: 
-
 Project Link: [https://github.com/NitaiNijholt/ABM_project](https://github.com/NitaiNijholt/ABM_project)
 
 ## References
 
 [1] Volker Grimm et al. “The ODD protocol: A review and first update”. In: Ecological Modelling 221.23 (2010), pp. 2760–2768. issn: 0304-3800. doi: [https://doi.org/10.1016/j.ecolmodel.2010.08.019](https://doi.org/10.1016/j.ecolmodel.2010.08.019). url: [http://www.sciencedirect.com/science/article/pii/S030438001000414X](http://www.sciencedirect.com/science/article/pii/S030438001000414X).
+```
+
+在更新后的README文件中，"Features"部分详细解释了每个文件的作用，并对"Contact Information"部分进行了格式调整。如果需要进一步修改或添加信息，请告诉我。
