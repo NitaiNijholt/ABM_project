@@ -112,4 +112,5 @@ Project Link: [https://github.com/NitaiNijholt/ABM_project](https://github.com/N
 ## References
 
 [1] Volker Grimm et al. “The ODD protocol: A review and first update”. In: Ecological Modelling 221.23 (2010), pp. 2760–2768. issn: 0304-3800. doi: [https://doi.org/10.1016/j.ecolmodel.2010.08.019](https://doi.org/10.1016/j.ecolmodel.2010.08.019). url: [http://www.sciencedirect.com/science/article/pii/S030438001000414X](http://www.sciencedirect.com/science/article/pii/S030438001000414X).
+
 [2] Zheng, S., Trott, A., Srinivasa, S., Parkes, D. C., & Socher, R. (2022). The AI Economist: Taxation policy design via two-level deep multiagent reinforcement learning. Science Advances, 8(18). https://doi.org/10.1126/sciadv.abk2607
