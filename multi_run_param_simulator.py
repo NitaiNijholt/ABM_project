@@ -7,29 +7,20 @@ import json
 from sklearn.preprocessing import StandardScaler
 from scipy.cluster.hierarchy import dendrogram, linkage
 from sklearn.cluster import AgglomerativeClustering
+from scipy.stats import ks_2samp
 from agent import Agent
 from grid import Grid
-from simulation_evolve import Simulation as SimulationEvolve
+from market import Market
+from orderbook import OrderBooks
+from static_tax_policy import StaticTaxPolicy
 from simulation import Simulation
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-
 
 class MultipleRunSimulator:
-    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no', evolve=False, dynamic_tax=True, dynamic_market=True, plot_per_run=False):
+    def __init__(self, simulation_params, num_runs, save_directory, do_feature_analysis='no'):
         self.simulation_params = simulation_params
         self.num_runs = num_runs
         self.save_directory = save_directory
         self.do_feature_analysis = do_feature_analysis
-        self.evolve = evolve
-        self.dynamic_tax = dynamic_tax
-        self.dynamic_market = dynamic_market
-        self.plot_per_run = plot_per_run
-        
-        # Extract grid width and height from simulation_params
-        grid_params = simulation_params.get('grid', [{}])[0]
-        self.grid_width = grid_params.get('grid_width', 40)
-        self.grid_height = grid_params.get('grid_height', 40)
 
         if not os.path.exists(self.save_directory):
             os.makedirs(self.save_directory)
@@ -56,22 +47,9 @@ class MultipleRunSimulator:
             for run in range(1, self.num_runs + 1):
                 print(f"Running simulation {run}/{self.num_runs} for parameter combination {combination_index}/{len(self.param_combinations)}...")
                 print(f"Parameters: {param_set}")
-                
-                # Create the grid
-                grid = Grid(width=self.grid_width, height=self.grid_height)
-                
-                # Remove the 'grid' key from param_set if it exists
-                param_set.pop('grid', None)
-                
-                if self.evolve:
-                    sim = SimulationEvolve(**param_set, grid=grid, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market)
-                else:
-                    sim = Simulation(**param_set, grid=grid, dynamic_tax=self.dynamic_tax, dynamic_market=self.dynamic_market, show_time=True)
+                sim = Simulation(**param_set)
                 sim.run()
                 self.save_run_data(sim.data, run, combination_index)
-                
-                if self.plot_per_run:
-                    self.plot_run_data(sim.data, run, combination_index)
 
     def save_run_data(self, data, run_number, combination_index):
         df = pd.DataFrame(data)
@@ -109,14 +87,13 @@ class MultipleRunSimulator:
         hierarchical_clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=0, compute_full_tree=True)
         clusters = hierarchical_clustering.fit_predict(scaled_features)
 
-        if self.plot_per_run:
-            plt.figure(figsize=(10, 7))
-            linked = linkage(scaled_features, 'ward')
-            plt.axhline(y=linked[-(2-1), 2], color='r', linestyle='--')
-            plt.title('Hierarchical Clustering Dendrogram')
-            plt.xlabel('Sample index')
-            plt.ylabel('Distance')
-            plt.show()
+        plt.figure(figsize=(10, 7))
+        linked = linkage(scaled_features, 'ward')
+        plt.axhline(y=linked[-(2-1), 2], color='r', linestyle='--')
+        plt.title('Hierarchical Clustering Dendrogram')
+        plt.xlabel('Sample index')
+        plt.ylabel('Distance')
+        plt.show()
 
         n_clusters = 3
         hierarchical_clustering = AgglomerativeClustering(n_clusters=n_clusters)
@@ -127,39 +104,38 @@ class MultipleRunSimulator:
         feature_means = pd.DataFrame(scaled_features, columns=aggregated_data.drop(columns=['agent_id', 'cluster']).columns).groupby(aggregated_data['cluster']).mean()
         colors = plt.get_cmap('tab10')
 
-        if self.plot_per_run:
-            fig, axs = plt.subplots(n_clusters, 1, figsize=(12, 8), constrained_layout=True)
-            for i in range(n_clusters):
-                feature_means.loc[i].plot(kind='bar', ax=axs[i], color=colors(i % 10))
-                axs[i].set_title(f'Normalized Feature Means for Cluster {i}')
-                axs[i].set_xlabel('Features')
-                axs[i].set_ylabel('Mean Standardized Value')
-                axs[i].grid(True)
-                axs[i].tick_params(axis='x', rotation=45)
-            plt.tight_layout(pad=3.0)
-            plt.show()
+        fig, axs = plt.subplots(n_clusters, 1, figsize=(12, 8), constrained_layout=True)
+        for i in range(n_clusters):
+            feature_means.loc[i].plot(kind='bar', ax=axs[i], color=colors(i % 10))
+            axs[i].set_title(f'Normalized Feature Means for Cluster {i}')
+            axs[i].set_xlabel('Features')
+            axs[i].set_ylabel('Mean Standardized Value')
+            axs[i].grid(True)
+            axs[i].tick_params(axis='x', rotation=45)
+        plt.tight_layout(pad=3.0)
+        plt.show()
 
-            fig, axs = plt.subplots(2, 1, figsize=(10, 6), constrained_layout=True)
-            for cluster in np.unique(clusters):
-                cluster_data = aggregated_data[aggregated_data['cluster'] == cluster]
-                label = f'Cluster {cluster}'
-                color = colors(cluster % 10)
-                if 'wealth_diff' in aggregated_data.columns:
-                    axs[0].hist(cluster_data['wealth_diff'], bins=20, alpha=0.5, label=label, color=color)
-                    axs[0].set_yscale('log')
-                    axs[0].set_title('Distribution of Wealth Differential by Cluster (Log Scale)')
-                    axs[0].set_xlabel('Wealth Differential')
-                    axs[0].set_ylabel('Frequency')
-                if 'income' in aggregated_data.columns:
-                    axs[1].hist(cluster_data['income'], bins=20, alpha=0.5, label=label, color=color)
-                    axs[1].set_yscale('log')
-                    axs[1].set_title('Distribution of Mean Income by Cluster (Log Scale)')
-                    axs[1].set_xlabel('Mean Income')
-                    axs[1].set_ylabel('Frequency')
-            axs[0].legend()
-            axs[1].legend()
-            plt.tight_layout(pad=3.0)
-            plt.show()
+        fig, axs = plt.subplots(2, 1, figsize=(10, 6), constrained_layout=True)
+        for cluster in np.unique(clusters):
+            cluster_data = aggregated_data[aggregated_data['cluster'] == cluster]
+            label = f'Cluster {cluster}'
+            color = colors(cluster % 10)
+            if 'wealth_diff' in aggregated_data.columns:
+                axs[0].hist(cluster_data['wealth_diff'], bins=20, alpha=0.5, label=label, color=color)
+                axs[0].set_yscale('log')
+                axs[0].set_title('Distribution of Wealth Differential by Cluster (Log Scale)')
+                axs[0].set_xlabel('Wealth Differential')
+                axs[0].set_ylabel('Frequency')
+            if 'income' in aggregated_data.columns:
+                axs[1].hist(cluster_data['income'], bins=20, alpha=0.5, label=label, color=color)
+                axs[1].set_yscale('log')
+                axs[1].set_title('Distribution of Mean Income by Cluster (Log Scale)')
+                axs[1].set_xlabel('Mean Income')
+                axs[1].set_ylabel('Frequency')
+        axs[0].legend()
+        axs[1].legend()
+        plt.tight_layout(pad=3.0)
+        plt.show()
 
         feature_means['cluster'] = feature_means.index
         return feature_means.reset_index(drop=True), clusters
@@ -171,7 +147,7 @@ class MultipleRunSimulator:
         df = pd.read_csv(file_path)
         with open(params_file_path, 'r') as f:
             params = json.load(f)
-        params['grid'] = Grid(width=self.grid_width, height=self.grid_height)
+        params['grid'] = Grid(width=10, height=10)
         print(f"Data for run {run_number} of combination {combination_index} loaded from {file_path} with parameters loaded from {params_file_path}.")
         return df, params
 
@@ -285,65 +261,64 @@ class MultipleRunSimulator:
                 plt.tight_layout()
                 plt.show()
 
-    def plot_run_data(self, data, run_number, combination_index):
-        df = pd.DataFrame(data)
-        for agent_id in df['agent_id'].unique():
-            agent_data = df[df['agent_id'] == agent_id]
-            plt.plot(agent_data['timestep'], agent_data['wealth'], label=f'Agent {agent_id}')
-        plt.xlabel('Timesteps')
-        plt.ylabel('Wealth')
-        plt.title(f'Wealth Over Time for Run {run_number} of Combination {combination_index}')
-        plt.grid(True)
+    def perform_ks_test(self, given_csv_path):
+        aggregated_data, _ = self.aggregate_results()
+        
+        # Aggregate income data from the simulation on a per-agent basis
+        agent_income_data = aggregated_data.groupby('agent_id')['income'].mean().dropna()
+
+        # Read income distribution from the given CSV file
+        given_data = pd.read_csv(given_csv_path)
+        given_income_data = given_data['income'].dropna()
+
+        # Perform the Kolmogorov-Smirnov test
+        ks_statistic, p_value = ks_2samp(agent_income_data, given_income_data)
+        print(f"Kolmogorov-Smirnov test statistic: {ks_statistic}")
+        print(f"P-value: {p_value}")
+
+        # Plot CDFs
+        plt.figure(figsize=(10, 6))
+        
+        # Plot CDF for agent income data
+        agent_income_sorted = np.sort(agent_income_data)
+        agent_cdf = np.arange(1, len(agent_income_sorted) + 1) / len(agent_income_sorted)
+        plt.plot(agent_income_sorted, agent_cdf, label='Simulated Agent Income CDF')
+        
+        # Plot CDF for given income data
+        given_income_sorted = np.sort(given_income_data)
+        given_cdf = np.arange(1, len(given_income_sorted) + 1) / len(given_income_sorted)
+        plt.plot(given_income_sorted, given_cdf, label='Given Income Data CDF')
+        
+        plt.xlabel('Income')
+        plt.ylabel('CDF')
+        plt.title('CDF of Simulated Agent Income vs. Given Income Data')
         plt.legend()
+        plt.grid(True)
         plt.show()
 
-        for agent_id in df['agent_id'].unique():
-            agent_data = df[df['agent_id'] == agent_id]
-            plt.plot(agent_data['timestep'], agent_data['houses'], label=f'Agent {agent_id}')
-        plt.xlabel('Timesteps')
-        plt.ylabel('Number of Houses')
-        plt.title(f'Number of Houses Over Time for Run {run_number} of Combination {combination_index}')
-        plt.grid(True)
-        plt.legend()
-        plt.show()
+        return ks_statistic, p_value
 
-        for agent_id in df['agent_id'].unique():
-            agent_data = df[df['agent_id'] == agent_id]
-            plt.plot(agent_data['timestep'], agent_data['income'], label=f'Agent {agent_id}')
-        plt.xlabel('Timesteps')
-        plt.ylabel('Income')
-        plt.title(f'Income Over Time for Run {run_number} of Combination {combination_index}')
-        plt.grid(True)
-        plt.legend()
-        plt.show()
-
-# Example usage
 constant_params = {
     'num_agents': [30],  
+    'grid': [Grid(width=40, height=40)],
     'n_timesteps': [1000],
-    'num_resources': [500],
-    'grid': [{'grid_width': 40, 'grid_height': 40}],
+    'num_resources': [50],
     'stone_rate': [1],
     'wood_rate': [1],
     'lifetime_mean': [80],
     'lifetime_std': [10],
-    'resource_spawn_rate': [0.5],
+    # 'resource_spawn_period': [1],
+    # 'agent_spawn_period': [10],
     'order_expiry_time': [5],
     'save_file_path': [None],
-    'tax_period': [1],
+    'tax_period': [30],
     'income_per_timestep': [1]
 }
 
 # Combine the two dictionaries
 combined_params = {**constant_params}
 
-evolve = False
-dynamic_tax = False
-dynamic_market = True
-
-num_runs = 10
-
-simulator = MultipleRunSimulator(combined_params, num_runs=num_runs, save_directory='sensitivity_analysis_results/test_exp_v3/', do_feature_analysis='yes', evolve=evolve, dynamic_tax=dynamic_tax, dynamic_market=dynamic_market, plot_per_run=False)
+simulator = MultipleRunSimulator(combined_params, num_runs=5, save_directory='sensitivity_analysis_results/evolve', do_feature_analysis='yes')
 simulator.run_simulations()
 aggregated_data, feature_importances = simulator.aggregate_results()
 
@@ -357,3 +332,7 @@ plt.ylabel('Maximum Wealth')
 plt.title('Maximum Wealth for Each Agent Across All Runs')
 plt.grid(True)
 plt.show()
+
+# Perform the K-S test
+given_csv_path = 'data/cleaned_income_data.csv'  # Use the path to the cleaned CSV file
+ks_statistic, p_value = simulator.perform_ks_test(given_csv_path)
