@@ -2,6 +2,45 @@
 
 This repository contains the files for the Agent Based Modeling project, for the Agent Based Modeling course, University of Amsterdam 2024.
 
+Abstract:
+
+This project uses an Agent-Based Model (ABM) to simulate
+the effects of static and redistributive dynamic tax policies on
+agent behaviors and wealth distribution. Agents, possessing
+assets like houses that generate income, can gather resources,
+and engage in buying, selling, and building houses, which
+increase income when clustered. By contrasting Expected
+Value Maximizing agents with those using Neural Networks
+evolved through Neuroevolution, the study examines emergent
+behaviors in response to different tax policies, reflecting initial
+wealth disparities in the Netherlands.
+Findings show that agents exhibit emergent behavior by
+forming distinct economic classes: a wealthy building class, a
+low-activity poor class, and either a middle class (for Expected
+Value Maximizing agents) or a trader class (for Neuroevolution
+agents). Sensitivity analysis reveals that parameters related to
+the number, cost, and income of assets significantly influence
+the persistence of these classes.
+The study notes significant differences in Gini coefficients
+for wealth distribution across tax policies for expectation-
+maximizing agents, though these differences have a low ef-
+fect size. Neuroevolution agents showed lower Gini coeffi-
+cients and productivity, and neither agent’s income distribution
+aligned with the Netherlands’ data under the Dutch tax policy.
+The main contribution of this study is the emergence of
+specialized behavior among different agent intelligence types
+and tax policies, with initial wealth as the primary form of
+heterogeneity. As wealth is easier to measure than skill our
+model is easier to parameterize while still showing emergence
+of building behaviors found in other research which employing
+skill heterogeneity. Future research should explore the impact
+of more aggressive redistributive tax policies on inequality and
+examine how class persistence changes through the parameter
+space by examining pairwise cluster feature differences of
+classes instead of total euclidean distance between the cluster
+feature vectors.
+
+
 ## Table of Contents
 
 - [ABM Project](#abm-project)
