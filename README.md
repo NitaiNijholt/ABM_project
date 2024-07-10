@@ -2,7 +2,7 @@
 
 This repository contains the files for the Agent Based Modeling project, for the Agent Based Modeling course, University of Amsterdam 2024.
 
-# Abstract
+#£ Abstract
 
 This project uses an Agent-Based Model (ABM) to simulate
 the effects of static and redistributive dynamic tax policies on
