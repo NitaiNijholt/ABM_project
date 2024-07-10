@@ -26,10 +26,13 @@ Ensure you have the following installed:
 - [Git](https://git-scm.com/)
 - Required Python libraries (listed in `requirements.txt`):
   - numpy
+  - scipy
   - pandas
   - matplotlib
-  - scikit-learn
-  - networkx
+  - statsmodels
+  - sklearn
+  - SALib
+  - psutil
   - more as specified in `requirements.txt`
 
 ### Installation Steps
