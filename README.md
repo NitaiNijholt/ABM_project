@@ -113,13 +113,10 @@ This project includes the following features:
 - **analysis_ks_test_income_disitributions.py**: Analyzes income distributions using the KS test.
 - **analysis_multiruns_ks_test.py**: Validates multiple simulation runs using the KS test.
 - **analysis_validation_multiruns_ks_test.py**: Further validation of multiple simulation runs using the KS test.
-- **clustering_and_pca.py**: Implements clustering and Principal Component Analysis (PCA) on simulation data.
-- **clustering_and_pca_new.py**: Updated version of the clustering and PCA implementation.
 - **fit_income_data_external.ipynb**: Jupyter notebook for fitting external income data.
 - **global_sensitivty_indices_plotter.py**: Plots global sensitivity indices.
-- **multi_run_param_simulator.py**: Simulates multiple runs with varying parameters.
-- **multi_run_param_simulator_sensitivity.py**: Adds sensitivity analysis to multi-run simulations.
-- **multi_run_param_simulator_v2.py**: Updated version of the multi-run parameter simulator.
+- **multi_run_param_simulator.py**: Simulates multiple runs with varying parameters and conducts Agglomorative clustering on the action space.
+- **multi_run_param_simulator_sensitivity.py**: Adds sensitivity analysis to multi-run simulations and conducts Agglomorative clustering on the action space.
 - **plot_sensitivity_indices.py**: Plots sensitivity indices for various metrics.
 - **sensitivity_analysis_oat.ipynb**: Jupyter notebook for One-At-A-Time (OAT) sensitivity analysis.
 
