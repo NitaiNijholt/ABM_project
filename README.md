@@ -109,7 +109,6 @@ This project includes the following features:
 - **network.py**: Defines the `Network` class, used for modeling intelligent agents' decision-making processes based on network connections and influences.
 - **simulation.py**: Contains the `Simulation` class for running simulations of EV-based agents in the modeled environment.
 - **simulation_evolve.py**: Contains the `Simulation` class for running simulations with network-based agents, incorporating evolutionary computing techniques for agent adaptation.
-- **aggregate_feature_importances_and_ANOVA.py**: Performs aggregate feature importance analysis and ANOVA tests.
 - **analysis_aggregate_feature_importances_and_ANOVA.py**: Contains scripts for analyzing aggregate feature importance and conducting ANOVA tests.
 - **analysis_ks_test_income_disitributions.py**: Analyzes income distributions using the KS test.
 - **analysis_multiruns_ks_test.py**: Validates multiple simulation runs using the KS test.
@@ -120,7 +119,6 @@ This project includes the following features:
 - **global_sensitivty_indices_plotter.py**: Plots global sensitivity indices.
 - **multi_run_param_simulator.py**: Simulates multiple runs with varying parameters.
 - **multi_run_param_simulator_sensitivity.py**: Adds sensitivity analysis to multi-run simulations.
-- **multi_run_param_simulator_sensitivity_v2.py**: Updated version of the sensitivity analysis for multi-run simulations.
 - **multi_run_param_simulator_v2.py**: Updated version of the multi-run parameter simulator.
 - **plot_sensitivity_indices.py**: Plots sensitivity indices for various metrics.
 - **sensitivity_analysis_oat.ipynb**: Jupyter notebook for One-At-A-Time (OAT) sensitivity analysis.
