@@ -3,7 +3,6 @@ from grid import Grid
 from house import House
 import sys
 from network import Network
-from numba import jit
 from agent import Agent
 
 

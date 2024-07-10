@@ -1,5 +1,4 @@
 import numpy as np
-from numba import jit
 
 class Network:
     def __init__(self, input_size, hidden_size, primary_output_size, n_hidden_layers, parameters):
