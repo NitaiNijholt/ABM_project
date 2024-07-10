@@ -51,6 +51,6 @@ class SensitivityPlotter:
             plt.show()
 
 # Usage
-results_directory = 'sensitivity_analysis_results/global_sa_ev_static/'
+results_directory = 'sensitivity_analysis_results/global_sa_ev_static_v2/'
 plotter = SensitivityPlotter(results_directory)
 plotter.plot_sensitivity_indices()
