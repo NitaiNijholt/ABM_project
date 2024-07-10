@@ -90,7 +90,6 @@ This project includes the following features:
 - **global_sensitivty_indices_plotter.py**: Plots global sensitivity indices.
 - **multi_run_param_simulator.py**: Simulates multiple runs with varying parameters and conducts Agglomorative clustering on the action space.
 - **multi_run_param_simulator_sensitivity.py**: Adds sensitivity analysis to multi-run simulations and conducts Agglomorative clustering on the action space.
-- **plot_sensitivity_indices.py**: Plots sensitivity indices for various metrics.
 - **sensitivity_analysis_oat.ipynb**: Jupyter notebook for One-At-A-Time (OAT) sensitivity analysis.
 
 ## License
