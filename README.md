@@ -73,7 +73,7 @@ Ensure you have the following installed:
 
 
 
-### Reproducig results
+### Reproducing results
 
 1. Verify that the model works on your device by running **main.py**
 2. Run **multi_run_param_simulator.py** according the experiments described in the paper, make sure to adjust the saving directory to record results.
