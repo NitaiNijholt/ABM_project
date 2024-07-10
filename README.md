@@ -76,9 +76,9 @@ Ensure you have the following installed:
 ### Reproducig results
 
 1. Verify that the model works on your device by running **main.py**
-2. Run **multi_run_param_simulator.py** according the experiments described in the paper, make sure to adjust the directory to record results.
-3. Run **multi_run_param_simulator_sensitivity.py** according the experiments described in the paper, make sure to adjust the directory to record results.
-4. Input the saved directories in the **analysis_** files to perform the analysis on
+2. Run **multi_run_param_simulator.py** according the experiments described in the paper, make sure to adjust the saving directory to record results.
+3. Run **multi_run_param_simulator_sensitivity.py** according the experiments described in the paper, make sure to adjust the saving directory to record results.
+4. Input the saved directory paths in the **analysis_** files to perform the analysis on
 5. Observe figures and find individual run results in 'multirun_simulation_results' and 'sensitivity_analysis_results' folders
 6. Compare obtained results with those in the 'final_result_images' folder to veryify
 
