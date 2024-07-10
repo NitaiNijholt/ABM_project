@@ -24,7 +24,42 @@ class Simulation:
                  lifetime_mean=80, lifetime_std=10, resource_spawn_rate=0.5, order_expiry_time=5, 
                  save_file_path=None, tax_period=1, income_per_timestep=1, show_time=False, dynamic_tax=True, dynamic_market=True):
         """
-        order_expiry_time (int): The amount of timesteps an order stays in the market until it expires
+        Initialize the simulation with the given parameters.
+
+        Parameters
+        ----------
+        num_agents : int
+            Number of agents in the simulation.
+        grid : Grid
+            Grid object representing the environment.
+        n_timesteps : int, optional
+            Number of timesteps for the simulation (default is 1).
+        num_resources : int, optional
+            Number of initial resources (default is 0).
+        wood_rate : float, optional
+            Initial rate of wood (default is 1).
+        stone_rate : float, optional
+            Initial rate of stone (default is 1).
+        lifetime_mean : float, optional
+            Mean of the agents' lifetime distribution (default is 80).
+        lifetime_std : float, optional
+            Standard deviation of the agents' lifetime distribution (default is 10).
+        resource_spawn_rate : float, optional
+            Rate at which resources spawn on the grid (default is 0.5).
+        order_expiry_time : int, optional
+            The amount of timesteps an order stays in the market until it expires (default is 5).
+        save_file_path : str, optional
+            File path to save the simulation results (default is None).
+        tax_period : int, optional
+            Periodicity of tax collection (default is 1).
+        income_per_timestep : int, optional
+            Income per timestep for the agents (default is 1).
+        show_time : bool, optional
+            Whether to display the current timestep during the simulation (default is False).
+        dynamic_tax : bool, optional
+            Whether to use dynamic tax policies (default is True).
+        dynamic_market : bool, optional
+            Whether to use dynamic market prices (default is True).
         """
         self.t = 0
         self.grid = grid
@@ -66,29 +101,42 @@ class Simulation:
         assert num_agents <= self.grid.width * self.grid.height, "Number of agents cannot be larger than gridpoints"
         
         # Load wealth distribution data
-        # MAKE SURE THIS LINE IS BEFORE AGENTS ARE CREATED
         self.wealth_distribution = self.load_distribution_data('data/distribution_data.json')
 
         # Create number of agents
         for agent_id in range(1, num_agents + 1):
             self.make_agent(agent_id)
         
-        # # Plot initial wealth distribution
-        # self.plot_initial_wealth_distribution()
-        
         # Initialize resources
         self.initialize_resources()
 
     def load_distribution_data(self, file_path):
+        """
+        Load wealth distribution data from a file.
+
+        Parameters
+        ----------
+        file_path : str
+            Path to the file containing wealth distribution data.
+
+        Returns
+        -------
+        dict
+            The wealth distribution data.
+        """
         with open(file_path, 'r') as file:
             distribution_data = json.load(file)
         return distribution_data
 
     def make_agent(self, agent_id):
         """
-        Note that on a grid cell, there can now only be 1 agent!
-        """ 
-        
+        Create and place an agent on the grid.
+
+        Parameters
+        ----------
+        agent_id : int
+            Unique identifier for the agent.
+        """
         mask_agent = self.grid.agent_matrix == 0
         mask_house = self.grid.house_matrix == 0
 
@@ -111,27 +159,35 @@ class Simulation:
         self.initial_wealth.append(wealth)
         
         if self.dynamic_market:
-            agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep)
+            agent = Agent(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep)
         else:
-            agent = Agent_static_market(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth = wealth, income_per_timestep=self.income_per_timestep)
+            agent = Agent_static_market(self, agent_id, position, self.grid, self.market, lifetime_mean=self.lifetime_mean, lifetime_std=self.lifetime_std, creation_time=self.t, wealth=wealth, income_per_timestep=self.income_per_timestep)
         self.grid.agents[agent_id] = agent
         self.grid.agent_matrix[position] = agent_id
 
     def get_random_position(self):
+        """
+        Get a random position on the grid.
+
+        Returns
+        -------
+        tuple
+            Random (x, y) position on the grid.
+        """
         x = np.random.randint(self.grid.width)
         y = np.random.randint(self.grid.height)
         return (x, y)
 
     def timestep(self):
+        """
+        Execute one timestep in the simulation.
+
+        This method updates the agents, order books, and market prices, and handles resource spawning and tax collection.
+        """
         self.t += 1
 
         if self.t % 100 == 0:
             print(f"Current timestep: {self.t}")
-
-            
-        # if self.t % 100 == 0:
-        #     print_memory_usage()
-        #     print(f"Timestep: {self.t}")
 
         agents = list(self.grid.agents.values())
         
@@ -158,7 +214,6 @@ class Simulation:
         if self.t % self.tax_period == 0:
             self.tax_policy.apply_taxes()
 
-
         # Update order books with current agents' state
         self.wood_order_book.agents_dict = self.get_agents_dict()
         self.stone_order_book.agents_dict = self.get_agents_dict()
@@ -171,6 +226,14 @@ class Simulation:
         self.market.update_price()
         
     def run(self, show_time=False):
+        """
+        Run the simulation for the specified number of timesteps.
+
+        Parameters
+        ----------
+        show_time : bool, optional
+            Whether to display the current timestep during the simulation (default is False).
+        """
         self.show_time = show_time
         if self.dynamic_tax:
             self.tax_policy = DynamicTaxPolicy(self.grid, self)
@@ -185,7 +248,9 @@ class Simulation:
 
     def initialize_resources(self):
         """
-        Initialize resources on the grid. This method places resources randomly on the grid.
+        Initialize resources on the grid.
+
+        This method places resources randomly on the grid.
         """
         for _ in range(self.num_resources):
             self.grid.resource_matrix_wood[self.get_random_position()] += 1
@@ -197,8 +262,6 @@ class Simulation:
         """
         num_wood = np.sum(self.grid.resource_matrix_wood)
         num_stone = np.sum(self.grid.resource_matrix_stone)
-        # print(f"Number of wood resources: {num_wood}")
-        # print(f"Number of stone resources: {num_stone}")
 
         for _ in range(int(self.resource_spawn_rate * (self.num_resources - num_stone))):
             stone_position = self.get_random_position()
@@ -221,17 +284,18 @@ class Simulation:
             self.make_agent(max(self.grid.agents.keys()))
             
     def get_agents_dict(self):
+        """
+        Get a dictionary of agents' resources.
+
+        Returns
+        -------
+        dict
+            Dictionary with agent IDs as keys and their resources as values.
+        """
         return {agent_id: {'wealth': agent.wealth, 'wood': agent.wood, 'stone': agent.stone} 
                 for agent_id, agent in self.grid.agents.items()}
 
-#     def update_agents_from_order_books(self):
-#         for agent_id, agent in self.grid.agents.items():
-#             if agent_id in self.wood_order_book.agents_dict:
-#                 agent.wealth = self.wood_order_book.agents_dict[agent_id]['wealth']
-#                 agent.wood = self.wood_order_book.agents_dict[agent_id]['wood']
-#             if agent_id in self.stone_order_book.agents_dict:
-#                 agent.wealth = self.stone_order_book.agents_dict[agent_id]['wealth']
-#                 agent.stone = self.stone_order_book.agents_dict[agent_id]['stone']
+
 
     def save_results(self, file_path):
         df = pd.DataFrame(self.data)
