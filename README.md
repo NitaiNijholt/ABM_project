@@ -1,6 +1,3 @@
-当然，我将更新"Features"部分并调整"Contact Information"的格式。以下是更新后的README文件：
-
-```markdown
 # ABM Project
 
 This repository contains the files for the Agent Based Modeling project, for the Agent Based Modeling course, University of Amsterdam 2024.
@@ -100,6 +97,3 @@ Project Link: [https://github.com/NitaiNijholt/ABM_project](https://github.com/N
 ## References
 
 [1] Volker Grimm et al. “The ODD protocol: A review and first update”. In: Ecological Modelling 221.23 (2010), pp. 2760–2768. issn: 0304-3800. doi: [https://doi.org/10.1016/j.ecolmodel.2010.08.019](https://doi.org/10.1016/j.ecolmodel.2010.08.019). url: [http://www.sciencedirect.com/science/article/pii/S030438001000414X](http://www.sciencedirect.com/science/article/pii/S030438001000414X).
-```
-
-在更新后的README文件中，"Features"部分详细解释了每个文件的作用，并对"Contact Information"部分进行了格式调整。如果需要进一步修改或添加信息，请告诉我。
