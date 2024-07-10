@@ -244,15 +244,8 @@ class MultipleRunSimulator:
             
             # Find common columns
             common_columns = list(set(features_columns) & set(reference_vectors_columns))
-            
-            # Debug: Print column names and values before aligning
-            print("Feature Vector Columns before aligning:", features_columns)
-            print("Features before aligning:")
-            print(features)
-            print("Reference Vector Columns before aligning:", reference_vectors_columns)
-            print("Reference Vectors before aligning:")
-            print(pd.DataFrame(self.reference_vectors, columns=self.reference_columns))
-            
+
+        
             # Align the features and reference vectors
             features = features[common_columns].values
             reference_vectors = pd.DataFrame(self.reference_vectors, columns=self.reference_columns)[common_columns].values
@@ -260,17 +253,7 @@ class MultipleRunSimulator:
             # Align clusters to the reference
             aligned_features = self.align_clusters(features, reference_vectors)
             
-            # Debug: Print column names and values after aligning
-            print("Feature Vector Columns after aligning:", common_columns)
-            print("Features after aligning:")
-            print(aligned_features)
-            print("Reference Vector Columns after aligning:", common_columns)
-            print("Reference Vectors after aligning:")
-            print(reference_vectors)
-            
             for i in range(len(aligned_features)):
-                print(f"Feature vector for cluster {i}: {aligned_features[i]}")
-                print(f"Reference vector for cluster {i}: {reference_vectors[i]}")
                 dist = euclidean(aligned_features[i], reference_vectors[i])
                 distances[f'euclidean_distance_cluster_{i}'] = dist
 
@@ -492,7 +475,7 @@ constant_params = {
 filtered_params = {k: v for k, v in constant_params.items() if None not in v}
 combined_params = {**filtered_params}
 
-evolve = False
+evolve = True
 dynamic_tax = True
 dynamic_market = True
 
