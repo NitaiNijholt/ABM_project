@@ -30,7 +30,7 @@ Ensure you have the following installed:
   - pandas
   - matplotlib
   - statsmodels
-  - sklearn
+  - scikit-learn
   - SALib
   - psutil
   - more as specified in `requirements.txt`
