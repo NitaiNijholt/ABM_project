@@ -380,6 +380,7 @@ class IntelligentAgent(Agent):
         quantity : int
             The amount of the resource to trade.
         """
+        quantity = int(quantity)
         if resource_type not in order_books:
             raise ValueError(f"Invalid resource type: {resource_type}")
 
