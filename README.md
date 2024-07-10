@@ -1,6 +1,19 @@
 # ABM Project
 
 This repository contains the files for the Agent Based Modeling project, for the Agent Based Modeling course, University of Amsterdam 2024.
+## Table of Contents
+
+- [ABM Project](#abm-project)
+  - [Table of Contents](#table-of-contents)
+  - [Abstract](#abstract)
+  - [Installation](#installation)
+    - [Prerequisites](#prerequisites)
+    - [Installation Steps](#installation-steps)
+  - [Features](#features)
+  - [License](#license)
+  - [Contact Information](#contact-information)
+  - [References](#references)
+ 
 
 ## Abstract
 
@@ -41,17 +54,6 @@ classes instead of total euclidean distance between the cluster
 feature vectors.
 
 
-## Table of Contents
-
-- [ABM Project](#abm-project)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-    - [Prerequisites](#prerequisites)
-    - [Installation Steps](#installation-steps)
-  - [Features](#features)
-  - [License](#license)
-  - [Contact Information](#contact-information)
-  - [References](#references)
 
 ## Installation
 
