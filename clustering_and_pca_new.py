@@ -42,9 +42,6 @@ aggregated_data = aggregated_data.merge(mean_income[['agent_id', 'income']], on=
 scaler = StandardScaler()
 scaled_features = scaler.fit_transform(aggregated_data.drop(columns=['agent_id']))
 
-# Perform hierarchical clustering
-hierarchical_clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=0, compute_full_tree=True)
-clusters = hierarchical_clustering.fit_predict(scaled_features)
 
 # Create a dendrogram
 plt.figure(figsize=(10, 7))
