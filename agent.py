@@ -24,20 +24,19 @@ class Agent(Agent_static_market):
             Market object where the agent can trade resources.
         creation_time : int
             Time when the agent was created.
-        wealth : int, optional
-            Initial wealth of the agent (default is 0).
-        wood : int, optional
-            Initial number of the wood resources of the agent (default is 0).
-        stone : int, optional
-            Initial number of the stone resources of the agent (default is 0).
-        lifetime_distribution : str, optional
-            Distribution of the lifetime (default is 'gamma'). Options: 'gamma', 'lognormal'.
-        lifetime_mean : float, optional
-            Mean of the lifetime distribution (default is 80).
-        lifetime_std : float, optional
-            Standard deviation of the lifetime distribution (default is 10).
-        income_per_timestep : int, optional
-            Income per timestep (default is 1).
+        wealth : int
+            Initial wealth of the agent.
+        wood : int
+            Initial number of the wood resources of the agent.
+        stone : int
+            Initial number of the stone resources of the agent.
+        lifetime_distribution : str
+            Distribution of the lifetime.
+            Options: 'gamma', 'lognormal'.
+        lifetime_mean : float
+            Mean of the lifetime distribution.
+        lifetime_std : float
+            Standard deviation of the lifetime distribution.
         """
         super().__init__(sim, agent_id, position, grid, market, creation_time, wealth, wood, stone, lifetime_distribution, lifetime_mean, lifetime_std, income_per_timestep)
         self.order_books = {'wood': self.sim.wood_order_book, 'stone': self.sim.stone_order_book}
@@ -46,13 +45,8 @@ class Agent(Agent_static_market):
         
 
     def step(self):
-        """
-        Execute one step in the simulation for this agent.
-
-        This method handles income collection, building continuation,
-        and determining and executing the best action based on earning rates.
-        """
         self.collect_income()
+        # print(f"Agent {self.agent_id} at step {self.sim.t}: Wealth={self.wealth}, Wood={self.wood}, Stone={self.stone}")
         if self.currently_building_timesteps > 0:
             self.currently_building_timesteps += 1
             self.current_action = 'continue_building'  # Standardized action name
@@ -69,24 +63,32 @@ class Agent(Agent_static_market):
                 'sell': self.earning_rate_selling(),
                 'gather': self.earning_rate_gathering()
             }
+#             print(f"Agent {self.agent_id} action rates: {self.earning_rates}")
             action_index = np.argmax(list(self.earning_rates.values()))
             action = actions[action_index]
             
             if action.__name__ == 'buy' or action.__name__ == 'sell':
                 if self.amount_orders >= self.limit:
+                    # print('LIMIT HIT')
                     earning_rates_values = list(self.earning_rates.values())
                     earning_rates_values[action_index] = -10
                     # Compute the argmax again to find the second highest value
                     second_action_index = np.argmax(earning_rates_values)
                     action = actions[second_action_index]                 
             self.current_action = action.__name__
+#             print(f"Agent {self.agent_id} at timestep {self.sim.t} performing action: {self.current_action}")
             list_sell = ['build', 'sell', 'gather']
             if action.__name__ in list_sell:
                 self.update_prices('sell')
             elif action.__name__ == 'buy':
                 self.update_prices('buy')
+#             if self.amount_orders < 0:
+#                 print(action.__name__, self.amount_orders)
+#             if self.amount_orders > 5:
+#                 print(action.__name__, self.wood, self.stone,  self.amount_orders)
                 
             action()
+#             self.current_action = action.__name__
             
         self.wealth_over_time.append(self.wealth)
         self.houses_over_time.append(len(self.houses))
@@ -99,12 +101,6 @@ class Agent(Agent_static_market):
         
         
     def die(self):
-        """
-        Handle the agent's death, including data recording and removal from the simulation.
-
-        This method writes the agent's data to a file if a writer is present, removes the agent from the grid and market, 
-        and spawns a new agent to replace the deceased one.
-        """
         if self.sim.writer:
             consolidated_data = (
                 self.wealth_over_time +
@@ -167,6 +163,7 @@ class Agent(Agent_static_market):
         quantity : int
             The amount of the resource to trade.
         """
+        quantity = int(quantity)
         if resource_type not in order_books:
             raise ValueError(f"Invalid resource type: {resource_type}")
         order_book = order_books[resource_type]
@@ -181,16 +178,10 @@ class Agent(Agent_static_market):
         else:
             raise ValueError(f"Invalid order type: {order_type}")
 
+        # Log the order placement for debugging
+        # print(f"Agent {self.agent_id} placed a {order_type} order for {quantity} units of {resource_type} at price {price}.")
 
     def update_prices(self, order_type):
-        """
-        Update the market prices based on the agent's order type (buy or sell).
-
-        Parameters
-        ----------
-        order_type : str
-            The type of order to place ('buy' or 'sell').
-        """
         assert order_type in ('sell', 'buy'), 'Takes in "buy" or "sell" only'
 
         age = self.sim.t - self.creation_time
@@ -223,21 +214,6 @@ class Agent(Agent_static_market):
 
         
     def determine_price(self, order_type, resource):
-        """
-        Determine the price for buying or selling a resource.
-
-        Parameters
-        ----------
-        order_type : str
-            The type of order to place ('buy' or 'sell').
-        resource : str
-            The type of resource to trade ('wood' or 'stone').
-
-        Returns
-        -------
-        float or None
-            The determined price for the resource, or None if the total income is zero.
-        """
         age = self.sim.t - self.creation_time
         total_income = max(self.income_per_timestep * (self.guessed_lifetime - age - self.required_building_time), 0)
         if total_income == 0:
@@ -271,4 +247,3 @@ class Agent(Agent_static_market):
                 self.market.stone_rate = m_price if resource == 'stone' else self.market.wood_rate
 
         return self.market.wood_rate if resource == 'wood' else self.market.stone_rate
-
